@@ -239,6 +239,10 @@ copies of each other: averaging them removes little and their scatter says littl
 (DGT-GPS-004) therefore only catches gross problems; the real mark-to-mark error is what the GPS test (DGT-GPS-007)
 measures, and it applies to every throw because the tee and disc are marked minutes apart.
 
+**GPS test result (developer's phone, 2026-10-30):** about 1 ft typical error between marks on one spot, much
+better than the earlier 10 ft swings. The developer may mark by laying the phone on the disc, which removes
+hand-position differences; if that works out it becomes an in-app tip.
+
 **Averaging helps, but only partly.** Averaging fixes over a few seconds (DGT-POS-002) removes jitter, but not slow
 errors such as signal reflections. That is why the app averages but still reports quality honestly.
 
@@ -331,6 +335,7 @@ Computed distances are stored for convenience but can always be recomputed from 
 - **No throw type or disc type** (field feedback): backhand/forehand and distance/fairway/mid/putter were dropped;
   neither adds value for the developer (DGT-THR-009, -010, DGT-PLT-007 removed; DGT-DSC-001, -003 changed).
 - **US spelling:** "meters", not "metres".
+- **Units in a settings screen** (three-lines menu on the start screen), since they are set once (DGT-UNI-001).
 - **GPS test mode** (DGT-GPS-007), after field marks on one spot swung by up to 10 ft: measure before deciding
   whether a longer hold is worth it.
 - **Reported GPS accuracy hidden** (DGT-GPS-001); the plot's choice is This Session / All Sessions (DGT-PLT-003);

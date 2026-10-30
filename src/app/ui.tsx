@@ -30,6 +30,23 @@ export function useEdgePadding(): { paddingTop: number; paddingBottom: number } 
   return { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 16 };
 }
 
+/** The three-lines menu icon, opening settings. */
+export function MenuButton(props: { onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Settings"
+      onPress={props.onPress}
+      hitSlop={12}
+      style={({ pressed }) => ({ padding: 8, gap: 5, opacity: pressed ? 0.5 : 1 })}
+    >
+      {[0, 1, 2].map((i) => (
+        <View key={i} style={{ width: 26, height: 3, borderRadius: 2, backgroundColor: colours.text }} />
+      ))}
+    </Pressable>
+  );
+}
+
 export function BigButton(props: { label: string; onPress: () => void; disabled?: boolean; colour?: string }) {
   const { label, onPress, disabled = false, colour = colours.primary } = props;
   return (

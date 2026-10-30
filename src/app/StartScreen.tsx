@@ -1,25 +1,17 @@
-// Start a session: name the disc (DGT-SES-001, DGT-DSC-003) and pick units (DGT-UNI-001), or resume (DGT-SES-004).
+// Start a session: name the disc (DGT-SES-001, DGT-DSC-003), or resume (DGT-SES-004). Units are in settings.
 // Also opens a disc's history (DGT-RPT-003) and deletes discs with a long press (DGT-DSC-002).
 
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
-import type { DistanceUnit } from '../core/units.ts';
 import { type Db, deleteDisc, discUsage, type DiscRow, recentDiscs, type SessionRow } from './db.ts';
 import type { Gps } from './gps.ts';
-import { Banner, BigButton, Choice, colours, GpsBar, SmallButton, styles, useEdgePadding } from './ui.tsx';
-
-const UNITS = [
-  { value: 'm', label: 'Meters' },
-  { value: 'ft', label: 'Feet' },
-] as const;
+import { Banner, BigButton, colours, GpsBar, MenuButton, SmallButton, styles, useEdgePadding } from './ui.tsx';
 
 export function StartScreen(props: {
   db: Db;
   gps: Gps;
   now: number;
-  unit: DistanceUnit;
-  onUnitChange: (unit: DistanceUnit) => void;
   lastDiscId: number | null;
   unfinished: { session: SessionRow; throwCount: number } | null;
   onStart: (name: string) => void;
@@ -28,8 +20,9 @@ export function StartScreen(props: {
   onHistory: (disc: DiscRow) => void;
   onDiscDeleted: (discId: number) => void;
   onGpsTest: () => void;
+  onSettings: () => void;
 }) {
-  const { db, gps, now, unit, unfinished } = props;
+  const { db, gps, now, unfinished } = props;
   const [discs, setDiscs] = useState<DiscRow[]>([]);
   const [name, setName] = useState('');
   const [reload, setReload] = useState(0);
@@ -82,7 +75,10 @@ export function StartScreen(props: {
 
   return (
     <ScrollView style={{ backgroundColor: colours.background }} contentContainerStyle={[styles.screen, edges]}>
-      <Text style={styles.h1}>Disc Golf Tracker</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text style={styles.h1}>Disc Golf Tracker</Text>
+        <MenuButton onPress={props.onSettings} />
+      </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <GpsBar fix={gps.fix} now={now} permission={gps.permission} />
         <SmallButton label="GPS test" onPress={props.onGpsTest} colour={colours.muted} />
@@ -147,9 +143,6 @@ export function StartScreen(props: {
           <SmallButton label={`${selected.name} history`} onPress={() => props.onHistory(selected)} />
         </View>
       )}
-
-      <Text style={styles.h2}>Units</Text>
-      <Choice options={UNITS} value={unit} onChange={props.onUnitChange} />
 
       <View style={{ marginTop: 32 }}>
         <BigButton label="START SESSION" onPress={() => props.onStart(name)} disabled={!canStart} />

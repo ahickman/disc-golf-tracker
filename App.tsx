@@ -26,6 +26,7 @@ import { GpsTestScreen } from './src/app/GpsTestScreen.tsx';
 import { HistoryScreen } from './src/app/HistoryScreen.tsx';
 import { ReportScreen } from './src/app/ReportScreen.tsx';
 import { SessionScreen } from './src/app/SessionScreen.tsx';
+import { SettingsScreen } from './src/app/SettingsScreen.tsx';
 import { StartScreen } from './src/app/StartScreen.tsx';
 import { styles } from './src/app/ui.tsx';
 
@@ -36,6 +37,7 @@ type Route =
   | { name: 'session'; disc: DiscRow; resume: Unfinished | null }
   | { name: 'history'; disc: DiscRow }
   | { name: 'gps-test' }
+  | { name: 'settings' }
   /** `from`: the disc history to go back to, when opened from there. */
   | { name: 'report'; sessionId: number; from?: DiscRow };
 
@@ -118,8 +120,6 @@ export default function App() {
           db={db}
           gps={gps}
           now={now}
-          unit={settings.unit}
-          onUnitChange={(unit: DistanceUnit) => changeSetting({ unit })}
           lastDiscId={settings.lastDiscId}
           unfinished={unfinished && { session: unfinished.session, throwCount: unfinished.throws.length }}
           onStart={(name) => {
@@ -131,6 +131,7 @@ export default function App() {
           }}
           onHistory={(disc) => setRoute({ name: 'history', disc })}
           onGpsTest={() => setRoute({ name: 'gps-test' })}
+          onSettings={() => setRoute({ name: 'settings' })}
           onDiscDeleted={(discId) => {
             if (settings.lastDiscId === discId) changeSetting({ lastDiscId: null });
             refreshUnfinished(db).catch(report);
@@ -150,6 +151,15 @@ export default function App() {
           overlay={settings.overlay}
           onOverlayChange={(overlay) => changeSetting({ overlay })}
           onEnd={(id) => (id === null ? backToStart() : setRoute({ name: 'report', sessionId: id }))}
+        />
+      );
+      break;
+    case 'settings':
+      screen = (
+        <SettingsScreen
+          unit={settings.unit}
+          onUnitChange={(unit: DistanceUnit) => changeSetting({ unit })}
+          onDone={backToStart}
         />
       );
       break;
