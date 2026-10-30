@@ -21,8 +21,10 @@ export interface Fix extends LatLon {
 
 /** A position averaged from several fixes taken while standing still (DGT-POS-002, DGT-POS-004). */
 export interface Mark extends LatLon {
-  /** Combined accuracy estimate of the averaged fixes, metres. */
+  /** Reported (absolute) accuracy of the averaged fixes, metres; for information and the no-lock check. */
   accuracyM: number;
+  /** RMS scatter of the fixes about their mean while standing still, metres: the mark's jitter. */
+  spreadM: number;
   fixCount: number;
   /** Time of the last fix used. */
   time: number;

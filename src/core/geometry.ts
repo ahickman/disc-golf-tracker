@@ -61,14 +61,12 @@ export function measureThrow(line: CentreLine, disc: LatLon): ThrowMeasurement {
 }
 
 /**
- * One-sigma uncertainty of the centre line's direction, radians (DGT-GPS-005).
- *
- * The tee and aim point errors are treated as independent, each with a per-axis sigma equal to the mark's reported
- * accuracy. Android reports a 68% radius, which is about 1.5 per-axis sigmas, and nearby fixes share much of
- * their error, so this errs on the pessimistic side (requirements Section 6).
+ * Rough uncertainty of the centre line's direction, radians (DGT-GPS-005), from the jitter of the tee and aim-point
+ * marks. A steady offset shared by both marks does not turn the line, so only their jitter counts. Drift of the
+ * offset between the two marks is not visible here; the tee check (DGT-GPS-006) catches it.
  */
-export function lineDirectionSigmaRad(teeAccuracyM: number, aimAccuracyM: number, baselineM: number): number {
-  return Math.atan(Math.hypot(teeAccuracyM, aimAccuracyM) / baselineM);
+export function lineDirectionSigmaRad(teeJitterM: number, aimJitterM: number, baselineM: number): number {
+  return Math.atan(Math.hypot(teeJitterM, aimJitterM) / baselineM);
 }
 
 /** Cross-range error caused by the line's direction uncertainty alone, at a given downrange distance. */

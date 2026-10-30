@@ -22,16 +22,16 @@ Builds from `main` are normal releases; builds from other branches are marked **
 
 | Milestone (requirements §10) | State |
 | --- | --- |
-| 1. Measurement core (`src/core/`) | Done: 32 tests |
-| 2. Field prototype (Set Tee / Set Line / Mark Disc / Confirm) | Next. The current build shows a GPS check screen instead. |
-| 3-5. Plot and report; discs and history; progress and export | Not started |
+| 1. Measurement core (`src/core/`) | Done |
+| 2. Field prototype: Set Tee / Set Line / Mark Disc / Confirm, saved on the phone | Built; needs field testing |
+| 3-5. Plot; discs and history; progress and export | Not started |
 
 ## Layout
 
 | Path | What it is |
 | --- | --- |
-| `App.tsx`, `index.ts` | The app's screens (Expo / React Native). |
-| `src/core/` | Measurement, statistics and formatting: plain TypeScript, no React, each file with its tests. |
+| `App.tsx`, `src/app/` | The app: screens, GPS hooks, SQLite storage (Expo / React Native). |
+| `src/core/` | Measurement, GPS quality, workflow, statistics and formatting: plain TypeScript, no React, each file with its tests. |
 | `docs/requirements.md` | Requirements (`DGT-<area>-<nnn>`); tests cite the IDs they verify. |
 | `.github/workflows/android.yml` | Tests, type-check, and APK build and release on every push. |
 | `signing/app.keystore` | The app's signing key (see below). |

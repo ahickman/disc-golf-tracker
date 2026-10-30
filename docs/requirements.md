@@ -1,7 +1,7 @@
 # Disc Golf Throw Tracker — Concept of Operations and Requirements
 
-> **Status:** draft 5, 2026-10-30. Moved to its own repository; milestone 1 (measurement core) done. Collected from the developer's description of the app; updated with the developer's
-> answers (Section 9). Nothing built yet.
+> **Status:** draft 6, 2026-10-30. Collected from the developer's description of the app; updated with the developer's
+> answers (Section 9). Milestone 1 (measurement core) done; milestone 2 (field prototype) built, awaiting field testing.
 > Open questions are listed in Section 9; values marked *(default)* are proposals the developer can change.
 
 ## 1. Purpose and scope
@@ -95,7 +95,7 @@ The field may have no mobile data signal.
 | ID | Requirement | Ver. |
 | --- | --- | --- |
 | DGT-POS-001 | Set Tee, Set Line, and Mark Disc shall each be a single tap of a large on-screen button, with no further confirmation step for Set Tee or Set Line. The averaging in DGT-POS-002 starts on the tap and needs no further input. | I |
-| DGT-POS-002 | When a mark is requested, the app shall collect fixes for a short settling window *(default 5 s, configurable 2–15 s)*, discard fixes whose reported accuracy is worse than the warning threshold (DGT-GPS-002) when better ones are available, and report the mark as the accuracy-weighted average of the remaining fixes. | T |
+| DGT-POS-002 | When a mark is requested, the app shall collect fixes for a short settling window *(default 5 s, configurable 2–15 s)*, extending it until at least 3 fixes have arrived (at most 15 s); discard fixes without satellite lock (DGT-GPS-002) when locked ones are available; and report the mark as the accuracy-weighted average of the remaining fixes, together with their **jitter** (RMS scatter about the average). | T |
 | DGT-POS-003 | While a mark is being taken, the app shall show a countdown or progress indicator, the live accuracy, and a prompt to stand still. | D |
 | DGT-POS-004 | Each mark shall store latitude, longitude, the combined accuracy estimate, the number of fixes used, and the time. Raw latitude/longitude are kept so that all distances can be recomputed later (e.g. after a formula change). | T |
 | DGT-POS-005 | Distances shall be horizontal only; altitude is recorded if available but not used. | T |
@@ -143,11 +143,12 @@ Confirm reads "Confirm anyway".
 
 | ID | Requirement | Ver. |
 | --- | --- | --- |
-| DGT-GPS-001 | The app shall request the phone's highest-accuracy location mode while a session is active, and shall show a persistent GPS quality indicator (good / marginal / poor / no fix) with the current accuracy in the selected unit. | D |
-| DGT-GPS-002 | The app shall display a clear warning when the reported horizontal accuracy is worse than **10 ft (3.05 m)** *(default, configurable)*. | T |
+| DGT-GPS-001 | The app shall request the phone's highest-accuracy location mode while it is open, and shall show a persistent GPS indicator (OK / no satellite lock / no fix) with the reported accuracy, in the selected unit, for information. | D |
+| DGT-GPS-002 | Only **relative** accuracy matters (decided 2026-10-30): a steady offset shared by the tee, aim point and disc cancels out. The app shall therefore **not** warn on the phone's reported accuracy, which includes that offset, except when it is worse than **15 m**, which means no satellite lock (Wi-Fi or cell positioning, neither small nor steady). | T |
 | DGT-GPS-003 | The app shall warn when no fix has been received for more than 5 s, when location permission is denied or limited to approximate location, and when the fix is stale (older than 5 s). | T |
-| DGT-GPS-004 | If a mark completes with accuracy worse than the threshold, the app shall say so on the review screen and let the player retry, wait, or accept it anyway. Accepted low-quality marks are flagged (DGT-THR-003) and can be excluded from statistics with a filter. | T |
-| DGT-GPS-005 | The app shall show the estimated uncertainty of the centre line's direction after Set Line (in degrees, and as the resulting cross-range uncertainty at 300 ft), so the player can decide to re-walk it. | T |
+| DGT-GPS-004 | A mark is **unsteady** if its jitter exceeds **10 ft (3.05 m)** *(default, configurable)*; **unchecked** if fewer than 3 fixes arrived; or **no lock** (DGT-GPS-002). For a non-steady disc mark the review screen shall say so and let the player re-measure or accept it anyway; for a tee or aim mark the app shall say so and offer to set it again. Accepted non-steady disc marks are flagged (DGT-THR-003) and can be excluded from statistics with a filter. | T |
+| DGT-GPS-005 | The app shall show the estimated uncertainty of the centre line's direction after Set Line (in degrees, and as the resulting cross-range uncertainty at 100 m / 300 ft), computed from the tee and aim marks' jitter, so the player can decide to re-walk it. | T |
+| DGT-GPS-006 | **Tee check.** While throwing, the player shall be able to re-mark the tee while standing on it. The app shall show how far that is from the stored tee: the drift of the GPS offset since the tee was set, which is the error drift adds to every measurement. Above 10 ft *(default)* it shall suggest setting a new tee and line. | T |
 
 ### 4.5 Discs
 
@@ -212,7 +213,7 @@ Confirm reads "Confirm anyway".
 | DGT-NFR-002 | **Minimal UI.** The session screen shall show one primary action at a time (the next step in the workflow), with buttons large enough to hit with a thumb while walking. | I |
 | DGT-NFR-003 | **Sunlight.** The session screen shall be readable in direct sun: high contrast, large type for the key numbers. A dark theme is optional. | D |
 | DGT-NFR-004 | **Screen awake.** The screen shall stay on while a session is active *(default on, configurable)*. | D |
-| DGT-NFR-005 | **Battery.** High-accuracy location shall run only while a session is active; the app shall not track location in the background. | I |
+| DGT-NFR-005 | **Battery.** High-accuracy location shall run only while the app is open in the foreground (it also runs on the start screen, so GPS has settled before Set Tee); the app shall not track location in the background. | I |
 | DGT-NFR-006 | **Privacy.** Data stays on the device unless the player exports it. No account, no analytics. Version 1 makes no network requests. (From version 2, map imagery requests reveal the area being viewed to the map provider; choosing the plain plot as default, DGT-MAP-005, avoids them.) | I |
 | DGT-NFR-007 | **Platform.** The app shall run on a current Android phone *(proposed minimum Android 10)*. iPhone is not a target; the framework choice keeps it possible later (Section 7). | D |
 | DGT-NFR-008 | **Testability.** The geometry and statistics code shall be pure functions with unit tests, and the app shall support a simulated-location mode so the full workflow can be exercised without walking a field. | T |
@@ -221,18 +222,25 @@ Confirm reads "Confirm anyway".
 
 This section is here so the requirements' numbers make sense and the results are read correctly.
 
-**Phone GPS is good to about 3–5 m (10–16 ft) in open sky.** The 10 ft warning threshold (DGT-GPS-002) is right at
-the edge of what phones achieve, so expect the warning to appear sometimes, especially near trees or buildings.
-The accuracy a phone reports is roughly a one-sigma (≈68%) radius, so even "10 ft" fixes are sometimes off by more.
-Phones with dual-frequency (L1/L5) GPS do noticeably better. On Android the reported accuracy is defined as a
-68% radius.
+**Phone GPS is good to about 3–5 m (10–16 ft) absolute in open sky,** and many phones never report better than
+±3 m (the developer's phone does not). The reported accuracy is an estimate of *absolute* error (on Android, a
+68% radius), and most of that error is an offset that changes slowly. For this app only *relative* error matters:
+an offset that stays the same while the tee, aim point and disc are marked cancels out of every distance. So the
+app ignores reported accuracy (DGT-GPS-002) and watches the two things that do spoil measurements:
+
+- **Jitter** (DGT-GPS-004): how much the fixes scatter while the player stands still for a mark.
+- **Drift** (DGT-GPS-006): how much the offset changes over a session. It is invisible within one mark but shows
+  up when the tee is re-marked later.
+
+Android's fused location provider smooths its output, so measured jitter may understate the noise. Field tests
+against a tape measure will show how well jitter predicts error.
 
 **Averaging helps, but only partly.** Averaging fixes over a few seconds (DGT-POS-002) removes jitter, but not slow
 errors such as signal reflections. That is why the app averages but still reports quality honestly.
 
 **Errors near in time and space are correlated.** The tee, aim point, and disc are measured within minutes and a
 few hundred feet of each other, so much of their error is shared and cancels in the differences the app computes.
-The figures below assume independent 3 m errors and are therefore pessimistic.
+The figures below assume independent 3 m errors, the worst case with no shared offset, and are therefore pessimistic.
 
 **Downrange** combines the tee and disc errors: roughly ±14 ft (one sigma) at worst, often much better. "To the
 foot" is the display resolution, not the accuracy.
@@ -297,7 +305,7 @@ both also need an account and key.
 
 ```text
 Disc     { id, name, type, manufacturer?, plastic?, weight_g?, colour?, speed?, glide?, turn?, fade?, retired }
-Mark     { lat, lon, accuracy_m, fix_count, time, altitude_m? }
+Mark     { lat, lon, accuracy_m, spread_m, fix_count, time, altitude_m? }   // spread_m: the mark's jitter
 Session  { id, disc_id, started_at, ended_at?, tee: Mark, aim: Mark, note? }
 Throw    { id, session_id, seq, time, throw_type: backhand|forehand, disc: Mark,
            downrange_m, crossrange_m, total_m, low_quality: bool, deleted: bool, note? }
@@ -323,6 +331,8 @@ Computed distances are stored for convenience but can always be recomputed from 
   Deferred from version 1 so no API key is needed yet.
 - **Default unit:** metres, feet selectable (DGT-UNI-001).
 - **Map provider (version 2):** Google Maps through `react-native-maps`.
+- **Relative accuracy only:** a steady GPS offset is fine; warnings come from jitter and tee drift, not the phone's
+  reported accuracy (DGT-GPS-002, -004, -006). Prompted by the developer's phone never reporting better than ±3 m.
 
 No questions are open.
 
@@ -331,7 +341,8 @@ No questions are open.
 1. **Geometry core.** Pure TypeScript functions for projection, downrange, cross range, line uncertainty, and
    statistics, with unit tests (DGT-THR-005, DGT-RPT-002, DGT-GPS-005).
 2. **Field prototype.** One screen: Set Tee, Set Line, Mark Disc, Confirm, with the GPS indicator and warnings,
-   saving to SQLite. Take it to a field and check against a tape measure or known distances.
+   saving to SQLite. Take it to a field and check against a tape measure or known distances. *Built 2026-10-30:
+   also includes the disc and unit choice, resume, the tee check, throw deletion, and a basic session report.*
 3. **Plot and session report,** including the backhand / forehand split.
 4. **Discs, history, and the previous-sessions overlay.**
 5. **Progress view, export and import, settings polish.**
