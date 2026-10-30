@@ -27,6 +27,7 @@ export function StartScreen(props: {
   onEndUnfinished: () => void;
   onHistory: (disc: DiscRow) => void;
   onDiscDeleted: (discId: number) => void;
+  onGpsTest: () => void;
 }) {
   const { db, gps, now, unit, unfinished } = props;
   const [discs, setDiscs] = useState<DiscRow[]>([]);
@@ -82,7 +83,10 @@ export function StartScreen(props: {
   return (
     <ScrollView style={{ backgroundColor: colours.background }} contentContainerStyle={[styles.screen, edges]}>
       <Text style={styles.h1}>Disc Golf Tracker</Text>
-      <GpsBar fix={gps.fix} now={now} permission={gps.permission} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <GpsBar fix={gps.fix} now={now} permission={gps.permission} />
+        <SmallButton label="GPS test" onPress={props.onGpsTest} colour={colours.muted} />
+      </View>
 
       {unfinished && (
         <Banner

@@ -22,6 +22,7 @@ import {
   type ThrowRow,
 } from './src/app/db.ts';
 import { useGps, useNow } from './src/app/gps.ts';
+import { GpsTestScreen } from './src/app/GpsTestScreen.tsx';
 import { HistoryScreen } from './src/app/HistoryScreen.tsx';
 import { ReportScreen } from './src/app/ReportScreen.tsx';
 import { SessionScreen } from './src/app/SessionScreen.tsx';
@@ -34,6 +35,7 @@ type Route =
   | { name: 'start' }
   | { name: 'session'; disc: DiscRow; resume: Unfinished | null }
   | { name: 'history'; disc: DiscRow }
+  | { name: 'gps-test' }
   /** `from`: the disc history to go back to, when opened from there. */
   | { name: 'report'; sessionId: number; from?: DiscRow };
 
@@ -128,6 +130,7 @@ export default function App() {
             endUnfinished().catch(report);
           }}
           onHistory={(disc) => setRoute({ name: 'history', disc })}
+          onGpsTest={() => setRoute({ name: 'gps-test' })}
           onDiscDeleted={(discId) => {
             if (settings.lastDiscId === discId) changeSetting({ lastDiscId: null });
             refreshUnfinished(db).catch(report);
@@ -149,6 +152,9 @@ export default function App() {
           onEnd={(id) => (id === null ? backToStart() : setRoute({ name: 'report', sessionId: id }))}
         />
       );
+      break;
+    case 'gps-test':
+      screen = <GpsTestScreen gps={gps} now={now} unit={settings.unit} onDone={backToStart} />;
       break;
     case 'history': {
       const disc = route.disc;

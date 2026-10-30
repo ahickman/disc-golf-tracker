@@ -147,6 +147,7 @@ Confirm reads "Confirm anyway".
 | DGT-GPS-004 | A mark is **unsteady** if its jitter exceeds **10 ft (3.05 m)** *(default, configurable)*; **unchecked** if fewer than 3 fixes arrived; or **no lock** (DGT-GPS-002). For a non-steady disc mark the review screen shall say so and let the player re-measure or accept it anyway; for a tee or aim mark the app shall say so and offer to set it again. Accepted non-steady disc marks are flagged (DGT-THR-003) and can be excluded from statistics with a filter. | T |
 | DGT-GPS-005 | The app shall show the estimated uncertainty of the centre line's direction after Set Line (in degrees, and as the resulting cross-range uncertainty at 100 m / 300 ft), computed from the tee and aim marks' jitter, so the player can decide to re-walk it. | T |
 | DGT-GPS-006 | **Tee check.** While throwing, the player shall be able to re-mark the tee while standing on it. The app shall show how far that is from the stored tee: the drift of the GPS offset since the tee was set, which is the error drift adds to every measurement. Above 10 ft *(default)* it shall suggest setting a new tee and line. | T |
+| DGT-GPS-007 | **GPS test.** From the start screen, the player shall be able to record GPS while standing on one spot (2, 5 or 10 min). The app shall then simulate a mark every 30 s with 5, 15 and 30 s holds and show, for each, the typical error (RMS about the marks' centre) and the worst swing between two marks; the drift from the first to the last 30 s; whether a longer hold helps; and a scatter of every reading and the 5 s marks. | T |
 
 ### 4.5 Discs
 
@@ -231,8 +232,12 @@ app ignores reported accuracy (DGT-GPS-002) and watches the two things that do s
 - **Drift** (DGT-GPS-006): how much the offset changes over a session. It is invisible within one mark but shows
   up when the tee is re-marked later.
 
-Android's fused location provider smooths its output, so measured jitter may understate the noise. Field tests
-against a tape measure will show how well jitter predicts error.
+**Field result (2026-10-30): jitter badly understates the real error.** Marks taken on the same spot a minute or so
+apart differed by up to 10 ft, while the jitter within each 5 s window was small. Phone GPS error mostly wanders
+slowly (over tens of seconds to minutes), and Android smooths its output, so the readings in a 5 s window are nearly
+copies of each other: averaging them removes little and their scatter says little. The jitter warning
+(DGT-GPS-004) therefore only catches gross problems; the real mark-to-mark error is what the GPS test (DGT-GPS-007)
+measures, and it applies to every throw because the tee and disc are marked minutes apart.
 
 **Averaging helps, but only partly.** Averaging fixes over a few seconds (DGT-POS-002) removes jitter, but not slow
 errors such as signal reflections. That is why the app averages but still reports quality honestly.
@@ -326,6 +331,8 @@ Computed distances are stored for convenience but can always be recomputed from 
 - **No throw type or disc type** (field feedback): backhand/forehand and distance/fairway/mid/putter were dropped;
   neither adds value for the developer (DGT-THR-009, -010, DGT-PLT-007 removed; DGT-DSC-001, -003 changed).
 - **US spelling:** "meters", not "metres".
+- **GPS test mode** (DGT-GPS-007), after field marks on one spot swung by up to 10 ft: measure before deciding
+  whether a longer hold is worth it.
 - **Reported GPS accuracy hidden** (DGT-GPS-001); the plot's choice is This Session / All Sessions (DGT-PLT-003);
   throws are numbered and colour-coded by throw number (DGT-PLT-008).
 - **Cross-range sign:** right of the line, looking downfield from the tee, is positive (Section 3).
