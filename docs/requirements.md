@@ -88,7 +88,7 @@ The field may have no mobile data signal.
 | DGT-SES-003 | The app shall save the session and every confirmed throw to device storage as soon as it is created or confirmed, so that nothing is lost if the app is closed, killed, or the phone restarts. | T |
 | DGT-SES-004 | On reopening, the app shall offer to resume an unfinished session. | T |
 | DGT-SES-005 | The player shall be able to re-set the tee and centre line during a session (e.g. after moving to a new tee). Doing so shall start a new session that carries over the disc. | T |
-| DGT-SES-006 | The player shall be able to end a session, view any past session, rename or annotate it, and delete it (with a confirmation step). | T |
+| DGT-SES-006 | The player shall be able to end a session, view any past session, rename or annotate it, and delete it (with a confirmation step). *Built: view and delete from the disc history (✕ or long press), with its throws; rename and annotate not yet.* | T |
 
 ### 4.2 Position marking
 
@@ -335,6 +335,7 @@ Computed distances are stored for convenience but can always be recomputed from 
 - **No throw type or disc type** (field feedback): backhand/forehand and distance/fairway/mid/putter were dropped;
   neither adds value for the developer (DGT-THR-009, -010, DGT-PLT-007 removed; DGT-DSC-001, -003 changed).
 - **US spelling:** "meters", not "metres".
+- **Phone-on-the-disc tip** on the Mark Disc step and in its hold-still overlay (field habit, about 1 ft error).
 - **Units and the GPS test in a settings screen** (three-lines menu on the start screen), since both are rarely
   used (DGT-UNI-001, DGT-GPS-007).
 - **GPS test mode** (DGT-GPS-007), after field marks on one spot swung by up to 10 ft: measure before deciding

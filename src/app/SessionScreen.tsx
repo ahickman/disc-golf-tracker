@@ -267,7 +267,12 @@ export function SessionScreen(props: {
               : `GPS has drifted ${formatDistance(driftM, unit)} since the tee was set. Measurements are still good.`}
           </Banner>
         )}
-        <Text style={[styles.instruction, { marginVertical: 12 }]}>Throw, walk to your disc, then tap Mark Disc.</Text>
+        <Text style={[styles.instruction, { marginTop: 12, marginBottom: 4 }]}>
+          Throw, walk to your disc, then tap Mark Disc.
+        </Text>
+        <Text style={[styles.muted, { textAlign: 'center', marginBottom: 12 }]}>
+          Tip: lay the phone on the disc while it marks.
+        </Text>
         {kept.length > 0 && stats.downrange && (
           <Text style={[styles.body, { marginBottom: 8 }]}>
             {kept.length} throw{kept.length === 1 ? '' : 's'} · best {formatDistance(stats.downrange.max, unit)} ·

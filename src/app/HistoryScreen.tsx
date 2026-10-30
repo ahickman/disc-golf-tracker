@@ -1,12 +1,20 @@
 // One disc's history (DGT-RPT-003): all-time figures, every throw on the plot, and its sessions, newest first.
-// Tap a session to open its report.
+// Tap a session to open its report; long-press it or tap its ✕ to delete it (DGT-SES-006).
 
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { sessionStats } from '../core/stats.ts';
 import { type DistanceUnit, formatCrossRange, formatDistance } from '../core/units.ts';
-import { type Db, type DiscRow, discSessions, type PastThrow, pastThrows, type SessionSummary } from './db.ts';
+import {
+  type Db,
+  deleteSession,
+  type DiscRow,
+  discSessions,
+  type PastThrow,
+  pastThrows,
+  type SessionSummary,
+} from './db.ts';
 import { ThrowPlot } from './ThrowPlot.tsx';
 import { BigButton, colours, styles, useEdgePadding } from './ui.tsx';
 
@@ -25,6 +33,7 @@ export function HistoryScreen(props: {
   const { db, disc, unit } = props;
   const [sessions, setSessions] = useState<SessionSummary[] | null>(null);
   const [throws, setThrows] = useState<PastThrow[]>([]);
+  const [reload, setReload] = useState(0);
   const edges = useEdgePadding();
 
   useEffect(() => {
@@ -39,7 +48,25 @@ export function HistoryScreen(props: {
     return () => {
       live = false;
     };
-  }, [db, disc.id]);
+  }, [db, disc.id, reload]);
+
+  const confirmDelete = (s: SessionSummary) =>
+    Alert.alert(
+      'Delete session?',
+      `${dateTime(s.startedAt)}: ${s.throwCount} throw${s.throwCount === 1 ? '' : 's'}. This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteSession(db, s.id)
+              .then(() => setReload((n) => n + 1))
+              .catch((e: unknown) => Alert.alert('Could not delete the session', String(e)));
+          },
+        },
+      ],
+    );
 
   const stats = sessionStats(throws.map((t) => ({ ...t, lowQuality: false, deleted: false })));
   const withThrows = (sessions ?? []).filter((s) => s.throwCount > 0);
@@ -91,8 +118,11 @@ export function HistoryScreen(props: {
         <Text style={styles.h2}>Sessions</Text>
         {sessions === null && <Text style={styles.muted}>Loading…</Text>}
         {sessions !== null && withThrows.length === 0 && <Text style={styles.muted}>No throws logged yet.</Text>}
+        {withThrows.length > 0 && (
+          <Text style={[styles.muted, { marginBottom: 4 }]}>Tap a session to see it; ✕ or long-press to delete it.</Text>
+        )}
         {withThrows.map((s) => (
-          <Pressable key={s.id} onPress={() => props.onOpenSession(s.id)}>
+          <Pressable key={s.id} onPress={() => props.onOpenSession(s.id)} onLongPress={() => confirmDelete(s)}>
             <View
               style={{
                 flexDirection: 'row',
@@ -110,9 +140,20 @@ export function HistoryScreen(props: {
                   {s.endedAt === null ? ' · unfinished' : ''}
                 </Text>
               </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.body}>best {s.bestM === null ? '—' : formatDistance(s.bestM, unit)}</Text>
-                <Text style={styles.muted}>avg {s.averageM === null ? '—' : formatDistance(s.averageM, unit)}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={styles.body}>best {s.bestM === null ? '—' : formatDistance(s.bestM, unit)}</Text>
+                  <Text style={styles.muted}>avg {s.averageM === null ? '—' : formatDistance(s.averageM, unit)}</Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete session"
+                  onPress={() => confirmDelete(s)}
+                  hitSlop={10}
+                  style={({ pressed }) => ({ padding: 6, opacity: pressed ? 0.5 : 1 })}
+                >
+                  <Text style={{ fontSize: 22, fontWeight: '700', color: colours.muted }}>✕</Text>
+                </Pressable>
               </View>
             </View>
           </Pressable>

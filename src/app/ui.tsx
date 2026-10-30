@@ -167,6 +167,7 @@ export function MarkingOverlay(props: { marking: MarkInProgress; settleMs: numbe
       <Text style={styles.overlayDetail}>
         Marking {TARGET_LABEL[marking.target]} · {marking.fixCount} GPS readings
       </Text>
+      {marking.target === 'disc' && <Text style={styles.overlayDetail}>Lay the phone on the disc.</Text>}
       {remaining === 0 && <Text style={styles.overlayDetail}>Waiting for more readings</Text>}
       <View style={{ marginTop: 48 }}>
         <SmallButton label="Cancel" onPress={onCancel} colour={colours.muted} />

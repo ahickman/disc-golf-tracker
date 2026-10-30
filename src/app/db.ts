@@ -197,6 +197,14 @@ export async function createSession(db: Db, discId: number, tee: Mark, aim: Mark
 }
 
 /** End a session; one with no throws is deleted instead. */
+/** Delete a session and its throws (DGT-SES-006). */
+export async function deleteSession(db: Db, sessionId: number): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM throws WHERE session_id = ?', sessionId);
+    await db.runAsync('DELETE FROM sessions WHERE id = ?', sessionId);
+  });
+}
+
 export async function endSession(db: Db, sessionId: number): Promise<void> {
   const n = await db.getFirstAsync<{ n: number }>('SELECT count(*) AS n FROM throws WHERE session_id = ?', sessionId);
   if ((n?.n ?? 0) === 0) await db.runAsync('DELETE FROM sessions WHERE id = ?', sessionId);
