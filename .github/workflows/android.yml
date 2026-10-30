@@ -1,0 +1,77 @@
+# Builds the Android APK on every push and publishes it as a GitHub release, so it can be downloaded on the phone
+# from the repository's Releases page. Builds from branches other than main are marked as pre-releases.
+name: Android APK
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Generate the native Android project
+        run: npx expo prebuild --platform android --no-install
+        env:
+          CI: 1
+
+      # The generated project signs release builds with android/app/debug.keystore. Replacing it with the
+      # repository's own key keeps the signature the same on every build, so updates install over the old app
+      # (and keep its data) instead of needing an uninstall.
+      - name: Use the repository's signing key
+        run: cp signing/app.keystore android/app/debug.keystore
+
+      # arm64-v8a only: every current Android phone, and a much faster build than all four architectures.
+      - name: Build the APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a
+
+      - name: Name the APK
+        id: apk
+        run: |
+          name="disc-golf-tracker-build-${{ github.run_number }}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "$name"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.name }}
+          path: ${{ steps.apk.outputs.name }}
+
+      - name: Publish a release with the APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prerelease=""
+          if [ "${{ github.ref_name }}" != "main" ]; then prerelease="--prerelease"; fi
+          gh release create "build-${{ github.run_number }}" "${{ steps.apk.outputs.name }}" \
+            --target "${{ github.sha }}" \
+            --title "Build ${{ github.run_number }} (${{ github.ref_name }})" \
+            --notes "Built from ${{ github.sha }} on ${{ github.ref_name }}. Download the .apk below on the phone and open it to install." \
+            $prerelease
