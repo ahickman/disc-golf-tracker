@@ -78,7 +78,7 @@ test('DGT-THR-005: horizontal distance matches the WGS-84 geodesic to 0.1 ft wit
   }
 });
 
-test('DGT-THR-005: fromLocal inverts toLocal to a millimetre', () => {
+test('DGT-THR-005: fromLocal inverts toLocal to a millimeter', () => {
   for (const origin of ORIGINS) {
     for (const local of [
       { east: 0, north: 0 },

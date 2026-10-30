@@ -3,7 +3,7 @@
 // Points go to Earth-centred coordinates on the WGS-84 ellipsoid and are then rotated into the tangent plane at
 // the origin. Altitude is ignored (DGT-POS-005): both points are taken at the ellipsoid surface and only the east
 // and north components are kept. Within 1 km of the origin this differs from the true ground distance by
-// micrometres.
+// micrometers.
 
 import type { LatLon, Local } from './types.ts';
 
@@ -22,7 +22,7 @@ function toEcef(p: LatLon): [number, number, number] {
   return [n * cosPhi * Math.cos(lam), n * cosPhi * Math.sin(lam), n * (1 - WGS84_E2) * sinPhi];
 }
 
-/** Position of `p` in the east-north tangent plane at `origin`, in metres. */
+/** Position of `p` in the east-north tangent plane at `origin`, in meters. */
 export function toLocal(origin: LatLon, p: LatLon): Local {
   const [x0, y0, z0] = toEcef(origin);
   const [x, y, z] = toEcef(p);
@@ -41,7 +41,7 @@ export function toLocal(origin: LatLon, p: LatLon): Local {
   };
 }
 
-/** Radii of curvature at a latitude: meridional (north-south) and prime vertical (east-west), metres. */
+/** Radii of curvature at a latitude: meridional (north-south) and prime vertical (east-west), meters. */
 function radiiOfCurvature(latDeg: number): { meridional: number; primeVertical: number } {
   const s = Math.sin(latDeg * DEG);
   const w = 1 - WGS84_E2 * s * s;
@@ -51,15 +51,15 @@ function radiiOfCurvature(latDeg: number): { meridional: number; primeVertical: 
 /** Inverse of `toLocal`: the latitude/longitude whose local position about `origin` is `local`. */
 export function fromLocal(origin: LatLon, local: Local): LatLon {
   const { meridional, primeVertical } = radiiOfCurvature(origin.lat);
-  const metresPerDegLat = meridional * DEG;
-  const metresPerDegLon = primeVertical * Math.cos(origin.lat * DEG) * DEG;
-  let p: LatLon = { lat: origin.lat + local.north / metresPerDegLat, lon: origin.lon + local.east / metresPerDegLon };
-  // Newton-style refinement; the first guess is already within millimetres at 1 km, so a few rounds suffice.
+  const metersPerDegLat = meridional * DEG;
+  const metersPerDegLon = primeVertical * Math.cos(origin.lat * DEG) * DEG;
+  let p: LatLon = { lat: origin.lat + local.north / metersPerDegLat, lon: origin.lon + local.east / metersPerDegLon };
+  // Newton-style refinement; the first guess is already within millimeters at 1 km, so a few rounds suffice.
   for (let i = 0; i < 4; i++) {
     const got = toLocal(origin, p);
     p = {
-      lat: p.lat + (local.north - got.north) / metresPerDegLat,
-      lon: p.lon + (local.east - got.east) / metresPerDegLon,
+      lat: p.lat + (local.north - got.north) / metersPerDegLat,
+      lon: p.lon + (local.east - got.east) / metersPerDegLon,
     };
   }
   return p;

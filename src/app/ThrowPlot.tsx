@@ -1,9 +1,9 @@
-// The throw plot (DGT-PLT-001..006): tee at the bottom, centre line straight up, this session's throws as dots and,
-// optionally, earlier throws in a paler colour. Tap a dot for its details.
+// The throw plot (DGT-PLT-001..008): tee at the bottom, centre line straight up, this session's throws as numbered
+// dots coloured by throw number and, optionally, earlier throws as small grey dots. Tap a dot for its details.
 
 import { useState } from 'react';
 import { Text, View } from 'react-native';
-import Svg, { Circle, Line, Polygon, Rect, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Line, Polygon, Rect, Text as SvgText } from 'react-native-svg';
 
 import { gridLines, plotFrame, toScreen } from '../core/plot.ts';
 import { DEFAULT_CORRIDOR_M } from '../core/stats.ts';
@@ -16,10 +16,12 @@ export interface PlotThrow {
   crossRangeM: number;
   /** Shown when the dot is tapped. */
   label: string;
+  /** Drawn inside the dot (throw number). */
+  number?: number;
+  colour?: string;
 }
 
 const PAST = '#9aa3ad';
-const LATEST = '#e8590c';
 
 export function ThrowPlot(props: {
   current: readonly PlotThrow[];
@@ -33,7 +35,6 @@ export function ThrowPlot(props: {
 
   const all = [...past, ...current];
   const frame = plotFrame(all, width, height);
-  const latest = current.length > 0 ? current[current.length - 1].key : null;
   const label = all.find((t) => t.key === selected)?.label;
   const corridorPx = DEFAULT_CORRIDOR_M * frame.scale;
 
@@ -55,7 +56,7 @@ export function ThrowPlot(props: {
               fill="#e8f0fe"
             />
             {gridLines(frame.maxDownrangeM, unit).map((g) => {
-              const y = frame.teeY - g.metres * frame.scale;
+              const y = frame.teeY - g.meters * frame.scale;
               return (
                 <Line key={g.label} x1={0} x2={width} y1={y} y2={y} stroke={colours.border} strokeWidth={1} />
               );
@@ -64,7 +65,7 @@ export function ThrowPlot(props: {
               <SvgText
                 key={`l${g.label}`}
                 x={6}
-                y={frame.teeY - g.metres * frame.scale - 4}
+                y={frame.teeY - g.meters * frame.scale - 4}
                 fontSize={13}
                 fill={colours.muted}
               >
@@ -92,18 +93,31 @@ export function ThrowPlot(props: {
             })}
             {current.map((t) => {
               const p = toScreen(frame, t);
-              const isLatest = t.key === latest;
+              const isSelected = t.key === selected;
+              const r = t.number === undefined ? 7 : 11;
               return (
-                <Circle
-                  key={t.key}
-                  cx={p.x}
-                  cy={p.y}
-                  r={isLatest ? 9 : 7}
-                  fill={isLatest ? LATEST : colours.primary}
-                  stroke={t.key === selected ? colours.text : '#ffffff'}
-                  strokeWidth={t.key === selected ? 3 : 2}
-                  onPress={() => setSelected(t.key)}
-                />
+                <G key={t.key} onPress={() => setSelected(t.key)}>
+                  <Circle
+                    cx={p.x}
+                    cy={p.y}
+                    r={r}
+                    fill={t.colour ?? colours.primary}
+                    stroke={isSelected ? '#e8590c' : '#ffffff'}
+                    strokeWidth={isSelected ? 3 : 2}
+                  />
+                  {t.number !== undefined && (
+                    <SvgText
+                      x={p.x}
+                      y={p.y + 4}
+                      fontSize={t.number > 99 ? 9 : 12}
+                      fontWeight="bold"
+                      fill="#ffffff"
+                      textAnchor="middle"
+                    >
+                      {String(t.number)}
+                    </SvgText>
+                  )}
+                </G>
               );
             })}
           </Svg>

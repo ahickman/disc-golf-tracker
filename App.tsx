@@ -22,6 +22,7 @@ import {
   type ThrowRow,
 } from './src/app/db.ts';
 import { useGps, useNow } from './src/app/gps.ts';
+import { HistoryScreen } from './src/app/HistoryScreen.tsx';
 import { ReportScreen } from './src/app/ReportScreen.tsx';
 import { SessionScreen } from './src/app/SessionScreen.tsx';
 import { StartScreen } from './src/app/StartScreen.tsx';
@@ -32,7 +33,9 @@ type Unfinished = { session: SessionRow; throws: ThrowRow[] };
 type Route =
   | { name: 'start' }
   | { name: 'session'; disc: DiscRow; resume: Unfinished | null }
-  | { name: 'report'; sessionId: number };
+  | { name: 'history'; disc: DiscRow }
+  /** `from`: the disc history to go back to, when opened from there. */
+  | { name: 'report'; sessionId: number; from?: DiscRow };
 
 export default function App() {
   const gps = useGps();
@@ -124,6 +127,11 @@ export default function App() {
           onEndUnfinished={() => {
             endUnfinished().catch(report);
           }}
+          onHistory={(disc) => setRoute({ name: 'history', disc })}
+          onDiscDeleted={(discId) => {
+            if (settings.lastDiscId === discId) changeSetting({ lastDiscId: null });
+            refreshUnfinished(db).catch(report);
+          }}
         />
       );
       break;
@@ -142,9 +150,32 @@ export default function App() {
         />
       );
       break;
-    case 'report':
-      screen = <ReportScreen db={db} sessionId={route.sessionId} unit={settings.unit} onDone={backToStart} />;
+    case 'history': {
+      const disc = route.disc;
+      screen = (
+        <HistoryScreen
+          db={db}
+          disc={disc}
+          unit={settings.unit}
+          onOpenSession={(sessionId) => setRoute({ name: 'report', sessionId, from: disc })}
+          onDone={backToStart}
+        />
+      );
       break;
+    }
+    case 'report': {
+      const from = route.from;
+      screen = (
+        <ReportScreen
+          db={db}
+          sessionId={route.sessionId}
+          unit={settings.unit}
+          doneLabel={from ? 'BACK' : 'DONE'}
+          onDone={from ? () => setRoute({ name: 'history', disc: from }) : backToStart}
+        />
+      );
+      break;
+    }
   }
 
   return (

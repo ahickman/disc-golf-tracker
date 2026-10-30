@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
+import { throwColour } from '../core/plot.ts';
 import { sessionStats, type Summary } from '../core/stats.ts';
 import { type DistanceUnit, formatCrossRange, formatDistance } from '../core/units.ts';
 import { type Db, getSession, type SessionRow, sessionThrows, type ThrowRow } from './db.ts';
 import { ThrowPlot } from './ThrowPlot.tsx';
-import { BigButton, colours, styles, useEdgePadding } from './ui.tsx';
+import { BigButton, colours, styles, ThrowBadge, useEdgePadding } from './ui.tsx';
 
 function time(ms: number): string {
   const d = new Date(ms);
@@ -47,7 +48,13 @@ function SummaryBlock(props: { title: string; s: Summary; unit: DistanceUnit }) 
   );
 }
 
-export function ReportScreen(props: { db: Db; sessionId: number; unit: DistanceUnit; onDone: () => void }) {
+export function ReportScreen(props: {
+  db: Db;
+  sessionId: number;
+  unit: DistanceUnit;
+  doneLabel?: string;
+  onDone: () => void;
+}) {
   const { db, sessionId, unit } = props;
   const [session, setSession] = useState<SessionRow | null>(null);
   const [throws, setThrows] = useState<ThrowRow[]>([]);
@@ -89,6 +96,8 @@ export function ReportScreen(props: { db: Db; sessionId: number; unit: DistanceU
                 downrangeM: t.downrangeM,
                 crossRangeM: t.crossRangeM,
                 label: `Throw ${t.seq} · ${formatDistance(t.downrangeM, unit)} · ${formatCrossRange(t.crossRangeM, unit)}`,
+                number: t.seq,
+                colour: throwColour(t.seq, throws.length),
               }))}
           />
         </View>
@@ -107,7 +116,7 @@ export function ReportScreen(props: { db: Db; sessionId: number; unit: DistanceU
               opacity: t.deleted ? 0.35 : 1,
             }}
           >
-            <Text style={[styles.body, { width: 32 }]}>{t.seq}</Text>
+            <ThrowBadge seq={t.seq} colour={throwColour(t.seq, throws.length)} faded={t.deleted} />
             <Text style={[styles.muted, { width: 52 }]}>{time(t.time)}</Text>
             <Text style={[styles.body, { fontWeight: '700', width: 80 }]}>{formatDistance(t.downrangeM, unit)}</Text>
             <Text style={[styles.body, { flex: 1 }]}>{formatCrossRange(t.crossRangeM, unit)}</Text>
@@ -122,7 +131,7 @@ export function ReportScreen(props: { db: Db; sessionId: number; unit: DistanceU
         )}
       </ScrollView>
       <View style={{ marginTop: 16 }}>
-        <BigButton label="DONE" onPress={props.onDone} />
+        <BigButton label={props.doneLabel ?? 'DONE'} onPress={props.onDone} />
       </View>
     </View>
   );

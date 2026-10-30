@@ -17,7 +17,7 @@ export interface CentreLine {
   /** Unit vector along the line, east and north components. */
   unitEast: number;
   unitNorth: number;
-  /** Tee to aim point distance, metres. */
+  /** Tee to aim point distance, meters. */
   baselineM: number;
   bearingDeg: number;
 }

@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { gpsStatus } from '../core/gps.ts';
 import type { Fix } from '../core/types.ts';
-import { type DistanceUnit, formatAccuracy } from '../core/units.ts';
 import type { MarkInProgress, Permission } from './gps.ts';
 
 export const colours = {
@@ -87,6 +86,24 @@ export function Choice<T extends string>(props: {
   );
 }
 
+/** A small circle with the throw number, matching the plot's dot (DGT-PLT-008). */
+export function ThrowBadge(props: { seq: number; colour: string; faded?: boolean }) {
+  return (
+    <View
+      style={{
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: props.faded ? colours.border : props.colour,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: props.seq > 99 ? 10 : 13 }}>{props.seq}</Text>
+    </View>
+  );
+}
+
 export function Banner(props: { tone: 'warn' | 'bad' | 'good'; children: ReactNode; action?: ReactNode }) {
   const colour = colours[props.tone];
   return (
@@ -97,9 +114,12 @@ export function Banner(props: { tone: 'warn' | 'bad' | 'good'; children: ReactNo
   );
 }
 
-/** Persistent GPS indicator (DGT-GPS-001). Reported accuracy is shown for information only. */
-export function GpsBar(props: { fix: Fix | null; now: number; unit: DistanceUnit; permission: Permission }) {
-  const { fix, now, unit, permission } = props;
+/**
+ * Persistent GPS indicator (DGT-GPS-001). The phone's reported (absolute) accuracy is not shown: only relative
+ * accuracy matters, and the number only invites worry (DGT-GPS-002).
+ */
+export function GpsBar(props: { fix: Fix | null; now: number; permission: Permission }) {
+  const { fix, now, permission } = props;
   if (permission === 'denied') {
     return <Banner tone="bad">Location permission denied. Allow precise location for this app in Android settings.</Banner>;
   }
@@ -109,12 +129,10 @@ export function GpsBar(props: { fix: Fix | null; now: number; unit: DistanceUnit
   const status = gpsStatus(fix, now);
   const colour = status === 'ok' ? colours.good : status === 'no-lock' ? colours.warn : colours.bad;
   const label = status === 'ok' ? 'GPS OK' : status === 'no-lock' ? 'NO SATELLITE LOCK' : 'NO GPS FIX';
-  const accuracy = fix !== null && Number.isFinite(fix.accuracyM) ? formatAccuracy(fix.accuracyM, unit) : '';
   return (
     <View style={styles.gpsBar}>
       <View style={[styles.dot, { backgroundColor: colour }]} />
       <Text style={[styles.gpsLabel, { color: colour }]}>{label}</Text>
-      <Text style={styles.gpsAccuracy}>{status === 'no-fix' ? '' : accuracy}</Text>
     </View>
   );
 }
@@ -168,7 +186,6 @@ export const styles = StyleSheet.create({
   gpsBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 },
   dot: { width: 14, height: 14, borderRadius: 7 },
   gpsLabel: { fontSize: 17, fontWeight: '800' },
-  gpsAccuracy: { fontSize: 17, color: colours.muted },
   overlay: {
     position: 'absolute',
     top: 0,

@@ -24,8 +24,9 @@ Builds from `main` are normal releases; builds from other branches are marked **
 | --- | --- |
 | 1. Measurement core (`src/core/`) | Done |
 | 2. Field prototype: Set Tee / Set Line / Mark Disc / Confirm, saved on the phone | Done |
-| 3. Throw plot, with earlier throws overlaid | Built; needs field testing |
-| 4-5. Discs and history; progress and export | Not started |
+| 3. Throw plot, with earlier throws overlaid | Done |
+| 4. Disc history and deleting discs | Built; needs field testing (chart over time to come) |
+| 5. Progress and export | Not started |
 
 ## Layout
 

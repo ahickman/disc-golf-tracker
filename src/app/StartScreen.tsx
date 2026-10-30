@@ -1,15 +1,16 @@
 // Start a session: name the disc (DGT-SES-001, DGT-DSC-003) and pick units (DGT-UNI-001), or resume (DGT-SES-004).
+// Also opens a disc's history (DGT-RPT-003) and deletes discs with a long press (DGT-DSC-002).
 
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import type { DistanceUnit } from '../core/units.ts';
-import { type Db, type DiscRow, recentDiscs, type SessionRow } from './db.ts';
+import { type Db, deleteDisc, discUsage, type DiscRow, recentDiscs, type SessionRow } from './db.ts';
 import type { Gps } from './gps.ts';
 import { Banner, BigButton, Choice, colours, GpsBar, SmallButton, styles, useEdgePadding } from './ui.tsx';
 
 const UNITS = [
-  { value: 'm', label: 'Metres' },
+  { value: 'm', label: 'Meters' },
   { value: 'ft', label: 'Feet' },
 ] as const;
 
@@ -24,15 +25,18 @@ export function StartScreen(props: {
   onStart: (name: string) => void;
   onResume: () => void;
   onEndUnfinished: () => void;
+  onHistory: (disc: DiscRow) => void;
+  onDiscDeleted: (discId: number) => void;
 }) {
   const { db, gps, now, unit, unfinished } = props;
   const [discs, setDiscs] = useState<DiscRow[]>([]);
   const [name, setName] = useState('');
+  const [reload, setReload] = useState(0);
   const edges = useEdgePadding();
 
   useEffect(() => {
     let live = true;
-    recentDiscs(db)
+    recentDiscs(db, 20)
       .then((list) => {
         if (!live) return;
         setDiscs(list);
@@ -43,14 +47,42 @@ export function StartScreen(props: {
     return () => {
       live = false;
     };
-  }, [db, props.lastDiscId]);
+  }, [db, props.lastDiscId, reload]);
 
   const canStart = name.trim().length > 0;
+  const selected = discs.find((d) => d.name.toLowerCase() === name.trim().toLowerCase()) ?? null;
+
+  const confirmDelete = (d: DiscRow) => {
+    discUsage(db, d.id)
+      .then((usage) => {
+        const what =
+          usage.sessions === 0
+            ? 'It has no sessions.'
+            : `This also deletes its ${usage.sessions} session${usage.sessions === 1 ? '' : 's'} and ${usage.throws} throw${usage.throws === 1 ? '' : 's'}.`;
+        Alert.alert(`Delete ${d.name}?`, `${what} This cannot be undone.`, [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: () => {
+              deleteDisc(db, d.id)
+                .then(() => {
+                  if (d.name.toLowerCase() === name.trim().toLowerCase()) setName('');
+                  props.onDiscDeleted(d.id);
+                  setReload((n) => n + 1);
+                })
+                .catch((e: unknown) => Alert.alert('Could not delete the disc', String(e)));
+            },
+          },
+        ]);
+      })
+      .catch((e: unknown) => Alert.alert('Could not delete the disc', String(e)));
+  };
 
   return (
     <ScrollView style={{ backgroundColor: colours.background }} contentContainerStyle={[styles.screen, edges]}>
       <Text style={styles.h1}>Disc Golf Tracker</Text>
-      <GpsBar fix={gps.fix} now={now} unit={unit} permission={gps.permission} />
+      <GpsBar fix={gps.fix} now={now} permission={gps.permission} />
 
       {unfinished && (
         <Banner
@@ -89,11 +121,26 @@ export function StartScreen(props: {
             <Pressable
               key={d.id}
               onPress={() => setName(d.name)}
-              style={{ backgroundColor: colours.faint, borderRadius: 16, paddingVertical: 8, paddingHorizontal: 14 }}
+              onLongPress={() => confirmDelete(d)}
+              delayLongPress={500}
+              style={{
+                backgroundColor: d.id === selected?.id ? colours.primary : colours.faint,
+                borderRadius: 16,
+                paddingVertical: 8,
+                paddingHorizontal: 14,
+              }}
             >
-              <Text style={{ fontSize: 16, color: colours.text }}>{d.name}</Text>
+              <Text style={{ fontSize: 16, color: d.id === selected?.id ? colours.onPrimary : colours.text }}>
+                {d.name}
+              </Text>
             </Pressable>
           ))}
+        </View>
+      )}
+      {discs.length > 0 && <Text style={[styles.muted, { marginTop: 8 }]}>Long-press a disc to delete it.</Text>}
+      {selected && (
+        <View style={{ marginTop: 12, alignSelf: 'flex-start' }}>
+          <SmallButton label={`${selected.name} history`} onPress={() => props.onHistory(selected)} />
         </View>
       )}
 

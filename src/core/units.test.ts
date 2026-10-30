@@ -3,7 +3,7 @@ import { test } from 'node:test';
 
 import { formatAccuracy, formatCrossRange, formatDistance, roundedDistance } from './units.ts';
 
-test('DGT-UNI-003: distances round to the nearest metre or foot', () => {
+test('DGT-UNI-003: distances round to the nearest meter or foot', () => {
   assert.equal(formatDistance(87.4, 'm'), '87 m');
   assert.equal(formatDistance(87.5, 'm'), '88 m');
   assert.equal(formatDistance(87.4, 'ft'), '287 ft'); // 286.75 ft
@@ -16,9 +16,9 @@ test('DGT-UNI-003: tiny negative values do not show as "-0"', () => {
 });
 
 test('DGT-UNI-001: the same stored value formats in either unit', () => {
-  const metres = 100;
-  assert.equal(formatDistance(metres, 'm'), '100 m');
-  assert.equal(formatDistance(metres, 'ft'), '328 ft');
+  const meters = 100;
+  assert.equal(formatDistance(meters, 'm'), '100 m');
+  assert.equal(formatDistance(meters, 'ft'), '328 ft');
 });
 
 test('DGT-THR-001: cross range shows a magnitude and a side', () => {

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { gridLines, MIN_DOWNRANGE_M, plotFrame, toScreen } from './plot.ts';
+import { gridLines, MIN_DOWNRANGE_M, plotFrame, THROW_RAMP, throwColour, toScreen } from './plot.ts';
 
 test('DGT-PLT-001: the tee is at the bottom centre and downrange points straight up', () => {
   const f = plotFrame([{ downrangeM: 80, crossRangeM: 0 }], 360, 320);
@@ -54,5 +54,16 @@ test('DGT-PLT-001: grid lines use round steps in the display unit', () => {
     ft.map((l) => l.label),
     [100, 200, 300],
   );
-  assert.ok(Math.abs(ft[0].metres - 30.48) < 1e-9);
+  assert.ok(Math.abs(ft[0].meters - 30.48) < 1e-9);
+});
+
+test('DGT-PLT-008: throw colours run from the lightest ramp step (first) to the darkest (latest)', () => {
+  assert.equal(throwColour(1, 10), THROW_RAMP[0]);
+  assert.equal(throwColour(10, 10), THROW_RAMP[3]);
+  assert.equal(throwColour(1, 1), THROW_RAMP[3]);
+  assert.equal(throwColour(2, 4), THROW_RAMP[1]);
+  const mid = throwColour(5, 9); // halfway: between steps 1 and 2
+  assert.match(mid, /^#[0-9a-f]{6}$/);
+  assert.notEqual(mid, THROW_RAMP[1]);
+  assert.notEqual(mid, THROW_RAMP[2]);
 });

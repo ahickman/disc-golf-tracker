@@ -89,8 +89,8 @@ export async function openDb(): Promise<Db> {
 
 // --- settings
 
-/** Which earlier throws the plot overlays (DGT-PLT-003). */
-export type Overlay = 'off' | 'disc' | 'all';
+/** What the plot shows (DGT-PLT-003): this session's throws only, or also all earlier sessions with the same disc. */
+export type Overlay = 'off' | 'disc';
 
 export interface Settings {
   unit: DistanceUnit;
@@ -105,7 +105,8 @@ export async function loadSettings(db: Db): Promise<Settings> {
   return {
     unit: m.get('unit') === 'ft' ? 'ft' : 'm',
     lastDiscId: Number.isInteger(lastDisc) && lastDisc > 0 ? lastDisc : null,
-    overlay: m.get('overlay') === 'disc' || m.get('overlay') === 'all' ? (m.get('overlay') as Overlay) : 'off',
+    // 'all' (every disc) was an option until 2026-10-30; it now means the same disc.
+    overlay: m.get('overlay') === 'disc' || m.get('overlay') === 'all' ? 'disc' : 'off',
   };
 }
 
@@ -134,6 +135,26 @@ export async function recentDiscs(db: Db, limit = 6): Promise<DiscRow[]> {
      WHERE d.retired = 0 GROUP BY d.id ORDER BY max(coalesce(s.started_at, d.created_at)) DESC LIMIT ?`,
     limit,
   );
+}
+
+/** How much a disc's deletion would remove. */
+export async function discUsage(db: Db, discId: number): Promise<{ sessions: number; throws: number }> {
+  const r = await db.getFirstAsync<{ sessions: number; throws: number }>(
+    `SELECT (SELECT count(*) FROM sessions WHERE disc_id = ?) AS sessions,
+            (SELECT count(*) FROM throws t JOIN sessions s ON s.id = t.session_id WHERE s.disc_id = ?) AS throws`,
+    discId,
+    discId,
+  );
+  return { sessions: r?.sessions ?? 0, throws: r?.throws ?? 0 };
+}
+
+/** Delete a disc with all its sessions and throws (DGT-DSC-002). */
+export async function deleteDisc(db: Db, discId: number): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM throws WHERE session_id IN (SELECT id FROM sessions WHERE disc_id = ?)', discId);
+    await db.runAsync('DELETE FROM sessions WHERE disc_id = ?', discId);
+    await db.runAsync('DELETE FROM discs WHERE id = ?', discId);
+  });
 }
 
 export async function getDisc(db: Db, id: number): Promise<DiscRow | null> {
@@ -292,5 +313,39 @@ export async function pastThrows(
     discName: r.disc_name,
     downrangeM: r.downrange_m,
     crossRangeM: r.crossrange_m,
+  }));
+}
+
+export interface SessionSummary {
+  id: number;
+  startedAt: number;
+  endedAt: number | null;
+  throwCount: number;
+  bestM: number | null;
+  averageM: number | null;
+}
+
+/** A disc's sessions, newest first, with counts and distances over their kept throws (DGT-RPT-003). */
+export async function discSessions(db: Db, discId: number): Promise<SessionSummary[]> {
+  const rows = await db.getAllAsync<{
+    id: number;
+    started_at: number;
+    ended_at: number | null;
+    n: number;
+    best: number | null;
+    average: number | null;
+  }>(
+    `SELECT s.id, s.started_at, s.ended_at, count(t.id) AS n, max(t.downrange_m) AS best, avg(t.downrange_m) AS average
+     FROM sessions s LEFT JOIN throws t ON t.session_id = s.id AND t.deleted = 0
+     WHERE s.disc_id = ? GROUP BY s.id ORDER BY s.started_at DESC`,
+    discId,
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    startedAt: r.started_at,
+    endedAt: r.ended_at,
+    throwCount: r.n,
+    bestM: r.best,
+    averageM: r.average,
   }));
 }

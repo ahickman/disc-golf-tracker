@@ -7,6 +7,7 @@ import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { crossRangeSigmaAt, lineDirectionSigmaRad } from '../core/geometry.ts';
 import { DEFAULT_DRIFT_LIMIT_M, gpsStatus, isLowQuality, type MarkQuality } from '../core/gps.ts';
 import { teeDriftM } from '../core/marks.ts';
+import { throwColour } from '../core/plot.ts';
 import { sessionStats } from '../core/stats.ts';
 import type { Mark } from '../core/types.ts';
 import { type DistanceUnit, formatCrossRange, formatDistance, roundedDistance } from '../core/units.ts';
@@ -26,14 +27,24 @@ import {
 } from './db.ts';
 import { type Gps, useMarker } from './gps.ts';
 import { type PlotThrow, ThrowPlot } from './ThrowPlot.tsx';
-import { Banner, BigButton, Choice, colours, GpsBar, MarkingOverlay, SmallButton, styles, useEdgePadding } from './ui.tsx';
+import {
+  Banner,
+  BigButton,
+  Choice,
+  colours,
+  GpsBar,
+  MarkingOverlay,
+  SmallButton,
+  styles,
+  ThrowBadge,
+  useEdgePadding,
+} from './ui.tsx';
 
 const DEG = 180 / Math.PI;
 
 const OVERLAYS = [
-  { value: 'off', label: 'Off' },
-  { value: 'disc', label: 'This disc' },
-  { value: 'all', label: 'All' },
+  { value: 'off', label: 'This Session' },
+  { value: 'disc', label: 'All Sessions' },
 ] as const;
 
 function plotLabel(prefix: string, downrangeM: number, crossRangeM: number, unit: DistanceUnit): string {
@@ -271,6 +282,8 @@ export function SessionScreen(props: {
               downrangeM: t.downrangeM,
               crossRangeM: t.crossRangeM,
               label: plotLabel(`Throw ${t.seq}`, t.downrangeM, t.crossRangeM, unit),
+              number: t.seq,
+              colour: throwColour(t.seq, throws.length),
             }),
           )}
           past={past.map(
@@ -287,7 +300,7 @@ export function SessionScreen(props: {
             }),
           )}
         />
-        <Text style={[styles.muted, { marginTop: 4, marginBottom: 6 }]}>Earlier throws on the plot</Text>
+        <Text style={[styles.muted, { marginTop: 4, marginBottom: 6 }]}>Plot shows</Text>
         <Choice options={OVERLAYS} value={props.overlay} onChange={props.onOverlayChange} />
         {[...throws].reverse().map((t) => (
           <Pressable key={t.id} onLongPress={() => toggleDeleted(t)} delayLongPress={400}>
@@ -301,7 +314,9 @@ export function SessionScreen(props: {
                 opacity: t.deleted ? 0.35 : 1,
               }}
             >
-              <Text style={[styles.body, { width: 40 }]}>{t.seq}</Text>
+              <View style={{ width: 40 }}>
+                <ThrowBadge seq={t.seq} colour={throwColour(t.seq, throws.length)} faded={t.deleted} />
+              </View>
               <Text style={[styles.body, { fontWeight: '700', width: 90 }]}>{formatDistance(t.downrangeM, unit)}</Text>
               <Text style={[styles.body, { flex: 1 }]}>{formatCrossRange(t.crossRangeM, unit)}</Text>
               <Text style={[styles.muted, { width: 24 }]}>{t.lowQuality ? '⚠' : ''}</Text>
@@ -372,7 +387,7 @@ export function SessionScreen(props: {
 
   return (
     <View style={[styles.screen, edges]}>
-      <GpsBar fix={gps.fix} now={now} unit={unit} permission={gps.permission} />
+      <GpsBar fix={gps.fix} now={now} permission={gps.permission} />
       <Text style={[styles.h1, { fontSize: 22 }]}>
         {disc.name}
         {s.name === 'throw' || s.name === 'review' ? ` · throw ${throws.length + 1}` : ''}
