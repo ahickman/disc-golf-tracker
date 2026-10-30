@@ -73,18 +73,18 @@ test('DGT-THR-005: only the line direction matters, not how far the aim point is
   near(a.crossRangeM, b.crossRangeM);
 });
 
-test('DGT-THR-006: Set Line is refused under 30 ft and warns under 150 ft', () => {
+test('DGT-THR-006: Set Line is refused under 30 ft and warns under 300 ft', () => {
   const tooShort = makeCentreLine(TEE, pointAt(45, feet(29), 0));
   assert.equal(tooShort.ok, false);
   const coincident = makeCentreLine(TEE, TEE);
   assert.equal(coincident.ok, false);
 
-  const short = makeCentreLine(TEE, pointAt(45, feet(100), 0));
+  const short = makeCentreLine(TEE, pointAt(45, feet(250), 0));
   assert.ok(short.ok && short.shortBaseline);
-  const long = makeCentreLine(TEE, pointAt(45, feet(200), 0));
+  const long = makeCentreLine(TEE, pointAt(45, feet(350), 0));
   assert.ok(long.ok && !long.shortBaseline);
   near(long.ok ? long.line.bearingDeg : NaN, 45, 1e-6);
-  near(long.ok ? long.line.baselineM : NaN, feet(200));
+  near(long.ok ? long.line.baselineM : NaN, feet(350));
 
   assert.ok(MIN_BASELINE_M > 9.14 && MIN_BASELINE_M < 9.15);
 });

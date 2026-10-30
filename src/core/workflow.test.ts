@@ -12,10 +12,10 @@ function markAt(east: number, north: number, spreadM = 0.5, fixCount = 5): Mark 
   return { ...fromLocal(TEE, { east, north }), accuracyM: 4, spreadM, fixCount, time: 0 };
 }
 
-/** Tee set and a 60 m line due north accepted. */
+/** Tee set and a 150 m line due north accepted. */
 function ready(): WorkflowState {
   let s = step(initialWorkflow(), { type: 'tee-marked', mark: markAt(0, 0) });
-  s = step(s, { type: 'aim-marked', mark: markAt(0, 60) });
+  s = step(s, { type: 'aim-marked', mark: markAt(0, 150) });
   assert.equal(s.stage.name, 'throw');
   return s;
 }
@@ -26,7 +26,7 @@ test('DGT-SES-001: Set Tee then Set Line leads to throwing', () => {
   s = step(s, { type: 'tee-marked', mark: markAt(0, 0) });
   assert.equal(s.stage.name, 'line');
   assert.equal(s.notice, null);
-  s = step(s, { type: 'aim-marked', mark: markAt(0, 60) });
+  s = step(s, { type: 'aim-marked', mark: markAt(0, 150) });
   assert.equal(s.stage.name, 'throw');
 });
 

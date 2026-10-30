@@ -218,7 +218,8 @@ export function SessionScreen(props: {
   } else if (s.name === 'line') {
     body = (
       <Text style={styles.instruction}>
-        Walk toward your target, ideally {unit === 'ft' ? '200 ft' : '60 m'} or more, then tap Set Line.
+        Walk toward your target, ideally {unit === 'ft' ? '500 ft' : '150 m'} or more, then tap Set Line. A longer
+        line gives more accurate left/right.
       </Text>
     );
     primary = (

@@ -109,7 +109,7 @@ The field may have no mobile data signal.
 | DGT-THR-003 | A confirmed throw shall store its timestamp, its disc mark, the computed downrange, cross range, and total distance, a sequence number within the session, and a flag if any of its marks was taken with a GPS warning active. | T |
 | DGT-THR-004 | The player shall be able to delete or annotate a logged throw after the fact (e.g. "rolled", "hit tree"). Deleted throws are excluded from statistics. | T |
 | DGT-THR-005 | Downrange and cross range shall be computed in a local flat (east-north) plane centred on the tee, using a WGS-84 local tangent-plane or equirectangular projection. Over the distances involved (< 1 km) the projection error shall be below 0.1 ft. | T |
-| DGT-THR-006 | The app shall reject Set Line if the aim point is closer than 30 ft to the tee, and shall warn (but allow) if the baseline is under 150 ft *(default)* because the line's direction will be imprecise (Section 6). | T |
+| DGT-THR-006 | The app shall reject Set Line if the aim point is closer than 30 ft to the tee, and shall warn (but allow) if the baseline is under 300 ft *(default; was 150 ft until field tests, 2026-10-30)* because the line's direction will be imprecise (Section 6). | T |
 | DGT-THR-007 | On the review screen the downrange distance shall be the dominant element: the largest text on the screen *(at least 25% of screen height)*, with its unit. Cross range, total distance, and GPS quality shall appear smaller beneath it. | D |
 | DGT-THR-008 | The **Confirm** button shall sit directly below the distance, be the largest button on the review screen, and confirm with a single tap. Re-measure and Discard shall be smaller and placed away from Confirm, so they are not hit by accident. | D |
 | DGT-THR-009 | ~~Backhand / forehand tag on every throw.~~ *Removed 2026-10-30: the developer has no use for it.* | — |
@@ -262,8 +262,17 @@ centre line is uncertain by about √2 × 3 m ÷ baseline:
 | 200 ft (61 m) | ≈ 4° | ≈ 21 ft |
 | 300 ft (91 m) | ≈ 2.7° | ≈ 14 ft |
 
-So the app warns on short baselines (DGT-THR-006) and shows the line's uncertainty (DGT-GPS-005). Walking 200 ft
-or more is recommended.
+So the app warns on short baselines (DGT-THR-006) and shows the line's uncertainty (DGT-GPS-005). Walking 500 ft
+(150 m) or more is recommended.
+
+**Field result (2026-10-30): make the line longer than the throws.** With a 250 ft line, cross range showed a 5-11 ft
+rightward bias; with a 600 ft line it was spot on. A sideways error *e* in the aim point tilts the line, moving a
+throw of length *D* sideways by *e* × *D* / *L* for a line of length *L*. A line longer than the throws therefore
+shrinks the aim-point error (to about 40% for a 250 ft throw on a 600 ft line), while a line shorter than the
+throws magnifies it. The disc mark's own error (drift between setting the tee and marking the disc) is not
+reduced; re-zeroing at the tee before each throw would address that if it proves necessary. Note that a test with
+the disc placed on the aim point is not sensitive to line length: there, cross range is only the aim point's GPS
+drift between its two marks.
 
 **Within a session, the tee and line errors are the same for every throw.** They shift or rotate the whole group
 of throws together, so the *spread* of a session's throws (consistency) is more trustworthy than its absolute

@@ -9,8 +9,12 @@ import { feet } from './units.ts';
 
 /** Set Line is refused when the aim point is closer than this to the tee (DGT-THR-006). */
 export const MIN_BASELINE_M = feet(30);
-/** Set Line warns, but accepts, below this baseline (DGT-THR-006, default). */
-export const DEFAULT_SHORT_BASELINE_M = feet(150);
+/**
+ * Set Line warns, but accepts, below this baseline (DGT-THR-006, default). Raised from 150 ft after field tests: an
+ * aim-point error tilts the line, moving a throw sideways by that error times throw length / line length, so a line
+ * longer than the throws shrinks it.
+ */
+export const DEFAULT_SHORT_BASELINE_M = feet(300);
 
 export interface CentreLine {
   tee: LatLon;
