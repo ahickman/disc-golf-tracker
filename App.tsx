@@ -130,7 +130,6 @@ export default function App() {
             endUnfinished().catch(report);
           }}
           onHistory={(disc) => setRoute({ name: 'history', disc })}
-          onGpsTest={() => setRoute({ name: 'gps-test' })}
           onSettings={() => setRoute({ name: 'settings' })}
           onDiscDeleted={(discId) => {
             if (settings.lastDiscId === discId) changeSetting({ lastDiscId: null });
@@ -159,12 +158,15 @@ export default function App() {
         <SettingsScreen
           unit={settings.unit}
           onUnitChange={(unit: DistanceUnit) => changeSetting({ unit })}
+          onGpsTest={() => setRoute({ name: 'gps-test' })}
           onDone={backToStart}
         />
       );
       break;
     case 'gps-test':
-      screen = <GpsTestScreen gps={gps} now={now} unit={settings.unit} onDone={backToStart} />;
+      screen = (
+        <GpsTestScreen gps={gps} now={now} unit={settings.unit} onDone={() => setRoute({ name: 'settings' })} />
+      );
       break;
     case 'history': {
       const disc = route.disc;

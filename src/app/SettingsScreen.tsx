@@ -1,9 +1,9 @@
-// Settings, opened from the menu icon on the start screen: things set once, such as units (DGT-UNI-001).
+// Settings, opened from the menu icon on the start screen: units (DGT-UNI-001) and the GPS test (DGT-GPS-007).
 
 import { Text, View } from 'react-native';
 
 import type { DistanceUnit } from '../core/units.ts';
-import { BigButton, Choice, styles, useEdgePadding } from './ui.tsx';
+import { BigButton, Choice, SmallButton, styles, useEdgePadding } from './ui.tsx';
 
 const UNITS = [
   { value: 'm', label: 'Meters' },
@@ -13,6 +13,7 @@ const UNITS = [
 export function SettingsScreen(props: {
   unit: DistanceUnit;
   onUnitChange: (unit: DistanceUnit) => void;
+  onGpsTest: () => void;
   onDone: () => void;
 }) {
   const edges = useEdgePadding();
@@ -25,6 +26,13 @@ export function SettingsScreen(props: {
         <Text style={[styles.muted, { marginTop: 8 }]}>
           Changes how distances are shown everywhere. Saved throws are not affected.
         </Text>
+        <Text style={styles.h2}>GPS test</Text>
+        <Text style={[styles.muted, { marginBottom: 12 }]}>
+          Stand on one spot for a few minutes to see how far apart marks taken there would be.
+        </Text>
+        <View style={{ alignSelf: 'flex-start' }}>
+          <SmallButton label="Run GPS test" onPress={props.onGpsTest} />
+        </View>
       </View>
       <BigButton label="DONE" onPress={props.onDone} />
     </View>

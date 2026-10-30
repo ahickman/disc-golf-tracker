@@ -147,7 +147,7 @@ Confirm reads "Confirm anyway".
 | DGT-GPS-004 | A mark is **unsteady** if its jitter exceeds **10 ft (3.05 m)** *(default, configurable)*; **unchecked** if fewer than 3 fixes arrived; or **no lock** (DGT-GPS-002). For a non-steady disc mark the review screen shall say so and let the player re-measure or accept it anyway; for a tee or aim mark the app shall say so and offer to set it again. Accepted non-steady disc marks are flagged (DGT-THR-003) and can be excluded from statistics with a filter. | T |
 | DGT-GPS-005 | The app shall show the estimated uncertainty of the centre line's direction after Set Line (in degrees, and as the resulting cross-range uncertainty at 100 m / 300 ft), computed from the tee and aim marks' jitter, so the player can decide to re-walk it. | T |
 | DGT-GPS-006 | **Tee check.** While throwing, the player shall be able to re-mark the tee while standing on it. The app shall show how far that is from the stored tee: the drift of the GPS offset since the tee was set, which is the error drift adds to every measurement. Above 10 ft *(default)* it shall suggest setting a new tee and line. | T |
-| DGT-GPS-007 | **GPS test.** From the start screen, the player shall be able to record GPS while standing on one spot (2, 5 or 10 min). The app shall then simulate a mark every 30 s with 5, 15 and 30 s holds and show, for each, the typical error (RMS about the marks' centre) and the worst swing between two marks; the drift from the first to the last 30 s; whether a longer hold helps; and a scatter of every reading and the 5 s marks. | T |
+| DGT-GPS-007 | **GPS test.** From the settings screen, the player shall be able to record GPS while standing on one spot (2, 5 or 10 min). The app shall then simulate a mark every 30 s with 5, 15 and 30 s holds and show, for each, the typical error (RMS about the marks' centre) and the worst swing between two marks; the drift from the first to the last 30 s; whether a longer hold helps; and a scatter of every reading and the 5 s marks. | T |
 
 ### 4.5 Discs
 
@@ -335,7 +335,8 @@ Computed distances are stored for convenience but can always be recomputed from 
 - **No throw type or disc type** (field feedback): backhand/forehand and distance/fairway/mid/putter were dropped;
   neither adds value for the developer (DGT-THR-009, -010, DGT-PLT-007 removed; DGT-DSC-001, -003 changed).
 - **US spelling:** "meters", not "metres".
-- **Units in a settings screen** (three-lines menu on the start screen), since they are set once (DGT-UNI-001).
+- **Units and the GPS test in a settings screen** (three-lines menu on the start screen), since both are rarely
+  used (DGT-UNI-001, DGT-GPS-007).
 - **GPS test mode** (DGT-GPS-007), after field marks on one spot swung by up to 10 ft: measure before deciding
   whether a longer hold is worth it.
 - **Reported GPS accuracy hidden** (DGT-GPS-001); the plot's choice is This Session / All Sessions (DGT-PLT-003);

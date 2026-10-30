@@ -19,7 +19,6 @@ export function StartScreen(props: {
   onEndUnfinished: () => void;
   onHistory: (disc: DiscRow) => void;
   onDiscDeleted: (discId: number) => void;
-  onGpsTest: () => void;
   onSettings: () => void;
 }) {
   const { db, gps, now, unfinished } = props;
@@ -79,10 +78,7 @@ export function StartScreen(props: {
         <Text style={styles.h1}>Disc Golf Tracker</Text>
         <MenuButton onPress={props.onSettings} />
       </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <GpsBar fix={gps.fix} now={now} permission={gps.permission} />
-        <SmallButton label="GPS test" onPress={props.onGpsTest} colour={colours.muted} />
-      </View>
+      <GpsBar fix={gps.fix} now={now} permission={gps.permission} />
 
       {unfinished && (
         <Banner
