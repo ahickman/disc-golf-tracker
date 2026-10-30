@@ -23,8 +23,9 @@ Builds from `main` are normal releases; builds from other branches are marked **
 | Milestone (requirements §10) | State |
 | --- | --- |
 | 1. Measurement core (`src/core/`) | Done |
-| 2. Field prototype: Set Tee / Set Line / Mark Disc / Confirm, saved on the phone | Built; needs field testing |
-| 3-5. Plot; discs and history; progress and export | Not started |
+| 2. Field prototype: Set Tee / Set Line / Mark Disc / Confirm, saved on the phone | Done |
+| 3. Throw plot, with earlier throws overlaid | Built; needs field testing |
+| 4-5. Discs and history; progress and export | Not started |
 
 ## Layout
 

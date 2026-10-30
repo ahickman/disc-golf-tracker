@@ -1,6 +1,5 @@
-// Session statistics (DGT-RPT-002), for all throws and split by throw type (DGT-THR-009).
+// Session statistics (DGT-RPT-002).
 
-import type { ThrowType } from './types.ts';
 import { feet } from './units.ts';
 
 /** Throws within this distance of the line count as "in the corridor" (DGT-RPT-002, default ±20 ft). */
@@ -9,7 +8,6 @@ export const DEFAULT_CORRIDOR_M = feet(20);
 export interface ThrowRecord {
   downrangeM: number;
   crossRangeM: number;
-  throwType: ThrowType;
   lowQuality: boolean;
   deleted: boolean;
 }
@@ -22,12 +20,6 @@ export interface Summary {
   crossRange: { mean: number; sd: number | null; meanAbs: number } | null;
   /** Percentage, 0-100; null when there are no throws. */
   withinCorridorPct: number | null;
-}
-
-export interface SessionStats {
-  all: Summary;
-  backhand: Summary;
-  forehand: Summary;
 }
 
 export interface StatsOptions {
@@ -68,13 +60,8 @@ export function summarize(throws: readonly ThrowRecord[], corridorM: number = DE
 }
 
 /** Session statistics: deleted throws excluded (DGT-THR-004), low-quality ones optionally. */
-export function sessionStats(throws: readonly ThrowRecord[], options: StatsOptions = {}): SessionStats {
-  const corridorM = options.corridorM ?? DEFAULT_CORRIDOR_M;
+export function sessionStats(throws: readonly ThrowRecord[], options: StatsOptions = {}): Summary {
   const includeLowQuality = options.includeLowQuality ?? true;
   const kept = throws.filter((t) => !t.deleted && (includeLowQuality || !t.lowQuality));
-  return {
-    all: summarize(kept, corridorM),
-    backhand: summarize(kept.filter((t) => t.throwType === 'backhand'), corridorM),
-    forehand: summarize(kept.filter((t) => t.throwType === 'forehand'), corridorM),
-  };
+  return summarize(kept, options.corridorM ?? DEFAULT_CORRIDOR_M);
 }

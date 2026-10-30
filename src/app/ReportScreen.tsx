@@ -1,4 +1,4 @@
-// End-of-session report (DGT-RPT-001, DGT-RPT-002), split by throw type when both were thrown.
+// End-of-session report (DGT-RPT-001, DGT-RPT-002).
 
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
@@ -6,7 +6,8 @@ import { ScrollView, Text, View } from 'react-native';
 import { sessionStats, type Summary } from '../core/stats.ts';
 import { type DistanceUnit, formatCrossRange, formatDistance } from '../core/units.ts';
 import { type Db, getSession, type SessionRow, sessionThrows, type ThrowRow } from './db.ts';
-import { BigButton, colours, styles } from './ui.tsx';
+import { ThrowPlot } from './ThrowPlot.tsx';
+import { BigButton, colours, styles, useEdgePadding } from './ui.tsx';
 
 function time(ms: number): string {
   const d = new Date(ms);
@@ -66,10 +67,10 @@ export function ReportScreen(props: { db: Db; sessionId: number; unit: DistanceU
   }, [db, sessionId]);
 
   const stats = sessionStats(throws);
-  const both = stats.backhand.count > 0 && stats.forehand.count > 0;
+  const edges = useEdgePadding();
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, edges]}>
       <ScrollView style={{ flex: 1 }}>
         <Text style={styles.h1}>Session report</Text>
         {session && (
@@ -78,11 +79,22 @@ export function ReportScreen(props: { db: Db; sessionId: number; unit: DistanceU
             {session.endedAt !== null ? `–${time(session.endedAt)}` : ''}
           </Text>
         )}
-        <SummaryBlock title="All throws" s={stats.all} unit={unit} />
-        {both && <SummaryBlock title="Backhand" s={stats.backhand} unit={unit} />}
-        {both && <SummaryBlock title="Forehand" s={stats.forehand} unit={unit} />}
+        <View style={{ marginTop: 16 }}>
+          <ThrowPlot
+            unit={unit}
+            current={throws
+              .filter((t) => !t.deleted)
+              .map((t) => ({
+                key: String(t.id),
+                downrangeM: t.downrangeM,
+                crossRangeM: t.crossRangeM,
+                label: `Throw ${t.seq} · ${formatDistance(t.downrangeM, unit)} · ${formatCrossRange(t.crossRangeM, unit)}`,
+              }))}
+          />
+        </View>
+        <SummaryBlock title="Throws" s={stats} unit={unit} />
 
-        <Text style={styles.h2}>Throws</Text>
+        <Text style={styles.h2}>All throws</Text>
         {throws.map((t) => (
           <View
             key={t.id}
@@ -100,8 +112,7 @@ export function ReportScreen(props: { db: Db; sessionId: number; unit: DistanceU
             <Text style={[styles.body, { fontWeight: '700', width: 80 }]}>{formatDistance(t.downrangeM, unit)}</Text>
             <Text style={[styles.body, { flex: 1 }]}>{formatCrossRange(t.crossRangeM, unit)}</Text>
             <Text style={styles.muted}>
-              {t.throwType === 'backhand' ? 'BH' : 'FH'}
-              {t.lowQuality ? ' ⚠' : ''}
+              {t.lowQuality ? '⚠' : ''}
               {t.deleted ? ' deleted' : ''}
             </Text>
           </View>

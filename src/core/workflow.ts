@@ -3,7 +3,7 @@
 
 import { type CentreLine, DEFAULT_SHORT_BASELINE_M, makeCentreLine, measureThrow, type ThrowMeasurement } from './geometry.ts';
 import { DEFAULT_JITTER_LIMIT_M, type MarkQuality, markQuality } from './gps.ts';
-import type { Mark, ThrowType } from './types.ts';
+import type { Mark } from './types.ts';
 
 export type Stage =
   | { name: 'tee' }
@@ -19,7 +19,6 @@ export type Stage =
       disc: Mark;
       measurement: ThrowMeasurement;
       quality: MarkQuality;
-      throwType: ThrowType;
     };
 
 export type Notice =
@@ -32,8 +31,6 @@ export type MarkTarget = 'tee' | 'aim' | 'disc' | 'tee-check';
 export interface WorkflowState {
   stage: Stage;
   notice: Notice | null;
-  /** The review screen's throw type starts on this (DGT-THR-009). */
-  lastThrowType: ThrowType;
 }
 
 export type WorkflowEvent =
@@ -43,7 +40,6 @@ export type WorkflowEvent =
   | { type: 'accept-line' }
   | { type: 'redo-line' }
   | { type: 'disc-marked'; mark: Mark }
-  | { type: 'set-throw-type'; throwType: ThrowType }
   | { type: 'confirm' }
   | { type: 'discard' }
   | { type: 'reset-tee' }
@@ -61,8 +57,8 @@ export const DEFAULT_WORKFLOW_SETTINGS: WorkflowSettings = {
   jitterLimitM: DEFAULT_JITTER_LIMIT_M,
 };
 
-export function initialWorkflow(lastThrowType: ThrowType = 'backhand'): WorkflowState {
-  return { stage: { name: 'tee' }, notice: null, lastThrowType };
+export function initialWorkflow(): WorkflowState {
+  return { stage: { name: 'tee' }, notice: null };
 }
 
 function qualityNotice(what: 'tee' | 'aim', mark: Mark, settings: WorkflowSettings): Notice | null {
@@ -77,7 +73,7 @@ export function step(
   settings: WorkflowSettings = DEFAULT_WORKFLOW_SETTINGS,
 ): WorkflowState {
   const s = state.stage;
-  const to = (stage: Stage, notice: Notice | null = null): WorkflowState => ({ ...state, stage, notice });
+  const to = (stage: Stage, notice: Notice | null = null): WorkflowState => ({ stage, notice });
 
   switch (event.type) {
     case 'mark-failed':
@@ -115,13 +111,8 @@ export function step(
         disc: event.mark,
         measurement: measureThrow(s.line, event.mark),
         quality: markQuality(event.mark, settings.jitterLimitM),
-        throwType: state.lastThrowType,
       });
-    case 'set-throw-type':
-      return s.name === 'review' ? to({ ...s, throwType: event.throwType }) : state;
     case 'confirm':
-      if (s.name !== 'review') return state;
-      return { stage: { name: 'throw', tee: s.tee, aim: s.aim, line: s.line }, notice: null, lastThrowType: s.throwType };
     case 'discard':
       return s.name === 'review' ? to({ name: 'throw', tee: s.tee, aim: s.aim, line: s.line }) : state;
   }

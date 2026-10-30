@@ -58,29 +58,15 @@ test('DGT-THR-001: Mark Disc measures the throw for review', () => {
   assert.equal(s.stage.quality, 'steady');
 });
 
-test('DGT-THR-009: the throw type starts on the last confirmed type', () => {
-  let s = step(ready(), { type: 'disc-marked', mark: markAt(0, 80) });
-  assert.equal(s.stage.name === 'review' && s.stage.throwType, 'backhand');
-  s = step(s, { type: 'set-throw-type', throwType: 'forehand' });
-  s = step(s, { type: 'confirm' });
-  assert.equal(s.stage.name, 'throw');
-  assert.equal(s.lastThrowType, 'forehand');
-  s = step(s, { type: 'disc-marked', mark: markAt(0, 70) });
-  assert.equal(s.stage.name === 'review' && s.stage.throwType, 'forehand');
-});
-
-test('DGT-THR-002: discard returns to throwing without changing the last throw type', () => {
-  let s = step(ready(), { type: 'disc-marked', mark: markAt(0, 80) });
-  s = step(s, { type: 'set-throw-type', throwType: 'forehand' });
-  s = step(s, { type: 'discard' });
-  assert.equal(s.stage.name, 'throw');
-  assert.equal(s.lastThrowType, 'backhand');
+test('DGT-THR-002: confirm and discard both return to throwing', () => {
+  const review = step(ready(), { type: 'disc-marked', mark: markAt(0, 80) });
+  assert.equal(step(review, { type: 'confirm' }).stage.name, 'throw');
+  assert.equal(step(review, { type: 'discard' }).stage.name, 'throw');
 });
 
 test('DGT-SES-004, DGT-SES-005: restore resumes throwing; reset goes back to Set Tee', () => {
-  const s = step(initialWorkflow('forehand'), { type: 'restore', tee: markAt(0, 0), aim: markAt(30, 30) });
+  const s = step(initialWorkflow(), { type: 'restore', tee: markAt(0, 0), aim: markAt(30, 30) });
   assert.equal(s.stage.name, 'throw');
-  assert.equal(s.lastThrowType, 'forehand');
   assert.equal(step(s, { type: 'reset-tee' }).stage.name, 'tee');
 });
 

@@ -30,5 +30,3 @@ export interface Mark extends LatLon {
   time: number;
   altitudeM?: number;
 }
-
-export type ThrowType = 'backhand' | 'forehand';

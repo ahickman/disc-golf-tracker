@@ -4,13 +4,12 @@
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import type { ThrowType } from './src/core/types.ts';
 import type { DistanceUnit } from './src/core/units.ts';
 import {
   type Db,
   type DiscRow,
-  type DiscType,
   endSession,
   loadSettings,
   openDb,
@@ -60,7 +59,7 @@ export default function App() {
 
   if (error !== null) {
     return (
-      <View style={styles.screen}>
+      <View style={[styles.screen, { paddingTop: 48 }]}>
         <Text style={styles.h1}>Something went wrong</Text>
         <Text style={styles.body}>{error}</Text>
       </View>
@@ -68,7 +67,7 @@ export default function App() {
   }
   if (db === null || settings === null) {
     return (
-      <View style={styles.screen}>
+      <View style={[styles.screen, { paddingTop: 48 }]}>
         <Text style={styles.muted}>Loading…</Text>
       </View>
     );
@@ -89,10 +88,10 @@ export default function App() {
       .catch(report);
   };
 
-  const start = async (name: string, type: DiscType) => {
+  const start = async (name: string) => {
     if (unfinished) await endSession(db, unfinished.session.id);
     setUnfinished(null);
-    const disc = await saveDisc(db, name, type);
+    const disc = await saveDisc(db, name);
     changeSetting({ lastDiscId: disc.id });
     setRoute({ name: 'session', disc, resume: null });
   };
@@ -118,8 +117,8 @@ export default function App() {
           onUnitChange={(unit: DistanceUnit) => changeSetting({ unit })}
           lastDiscId={settings.lastDiscId}
           unfinished={unfinished && { session: unfinished.session, throwCount: unfinished.throws.length }}
-          onStart={(name, type) => {
-            start(name, type).catch(report);
+          onStart={(name) => {
+            start(name).catch(report);
           }}
           onResume={() => unfinished && setRoute({ name: 'session', disc: unfinished.session.disc, resume: unfinished })}
           onEndUnfinished={() => {
@@ -137,8 +136,8 @@ export default function App() {
           unit={settings.unit}
           disc={route.disc}
           resume={route.resume}
-          lastThrowType={settings.lastThrowType}
-          onThrowType={(t: ThrowType) => changeSetting({ lastThrowType: t })}
+          overlay={settings.overlay}
+          onOverlayChange={(overlay) => changeSetting({ overlay })}
           onEnd={(id) => (id === null ? backToStart() : setRoute({ name: 'report', sessionId: id }))}
         />
       );
@@ -149,9 +148,9 @@ export default function App() {
   }
 
   return (
-    <>
+    <SafeAreaProvider>
       {screen}
       <StatusBar style="dark" />
-    </>
+    </SafeAreaProvider>
   );
 }

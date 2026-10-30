@@ -8,10 +8,13 @@ import { crossRangeSigmaAt, lineDirectionSigmaRad } from '../core/geometry.ts';
 import { DEFAULT_DRIFT_LIMIT_M, gpsStatus, isLowQuality, type MarkQuality } from '../core/gps.ts';
 import { teeDriftM } from '../core/marks.ts';
 import { sessionStats } from '../core/stats.ts';
-import type { Mark, ThrowType } from '../core/types.ts';
+import type { Mark } from '../core/types.ts';
 import { type DistanceUnit, formatCrossRange, formatDistance, roundedDistance } from '../core/units.ts';
 import { initialWorkflow, type MarkTarget, type Notice, step, type WorkflowEvent } from '../core/workflow.ts';
 import {
+  type Overlay,
+  type PastThrow,
+  pastThrows,
   addThrow,
   createSession,
   type Db,
@@ -22,14 +25,20 @@ import {
   type ThrowRow,
 } from './db.ts';
 import { type Gps, useMarker } from './gps.ts';
-import { Banner, BigButton, Choice, colours, GpsBar, MarkingOverlay, SmallButton, styles } from './ui.tsx';
-
-const THROW_TYPES = [
-  { value: 'backhand', label: 'Backhand' },
-  { value: 'forehand', label: 'Forehand' },
-] as const;
+import { type PlotThrow, ThrowPlot } from './ThrowPlot.tsx';
+import { Banner, BigButton, Choice, colours, GpsBar, MarkingOverlay, SmallButton, styles, useEdgePadding } from './ui.tsx';
 
 const DEG = 180 / Math.PI;
+
+const OVERLAYS = [
+  { value: 'off', label: 'Off' },
+  { value: 'disc', label: 'This disc' },
+  { value: 'all', label: 'All' },
+] as const;
+
+function plotLabel(prefix: string, downrangeM: number, crossRangeM: number, unit: DistanceUnit): string {
+  return `${prefix} · ${formatDistance(downrangeM, unit)} · ${formatCrossRange(crossRangeM, unit)}`;
+}
 
 function qualityText(quality: Exclude<MarkQuality, 'steady'>, spreadM: number, unit: DistanceUnit): string {
   switch (quality) {
@@ -60,16 +69,16 @@ export function SessionScreen(props: {
   unit: DistanceUnit;
   disc: DiscRow;
   resume: { session: SessionRow; throws: ThrowRow[] } | null;
-  lastThrowType: ThrowType;
-  onThrowType: (t: ThrowType) => void;
+  overlay: Overlay;
+  onOverlayChange: (overlay: Overlay) => void;
   onEnd: (sessionId: number | null) => void;
 }) {
   useKeepAwake(); // DGT-NFR-004
   const { db, gps, now, unit, disc, resume } = props;
   const [wf, setWf] = useState(() =>
     resume
-      ? step(initialWorkflow(props.lastThrowType), { type: 'restore', tee: resume.session.tee, aim: resume.session.aim })
-      : initialWorkflow(props.lastThrowType),
+      ? step(initialWorkflow(), { type: 'restore', tee: resume.session.tee, aim: resume.session.aim })
+      : initialWorkflow(),
   );
   const [sessionId, setSessionId] = useState<number | null>(resume?.session.id ?? null);
   const [throws, setThrows] = useState<ThrowRow[]>(resume?.throws ?? []);
@@ -77,6 +86,23 @@ export function SessionScreen(props: {
   const [saving, setSaving] = useState(false);
   const creating = useRef(false);
   const marker = useMarker(gps);
+  const edges = useEdgePadding();
+  const [past, setPast] = useState<PastThrow[]>([]);
+
+  // Earlier throws for the plot overlay (DGT-PLT-003).
+  useEffect(() => {
+    if (props.overlay === 'off') {
+      setPast([]);
+      return;
+    }
+    let live = true;
+    pastThrows(db, sessionId, props.overlay === 'disc' ? disc.id : null)
+      .then((rows) => live && setPast(rows))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [db, sessionId, disc.id, props.overlay]);
 
   const dispatch = (e: WorkflowEvent) => setWf((s) => step(s, e));
   const fail = (what: string, e: unknown) => Alert.alert(`Could not ${what}`, String(e));
@@ -113,7 +139,6 @@ export function SessionScreen(props: {
       const row = await addThrow(db, {
         sessionId,
         time: s.disc.time,
-        throwType: s.throwType,
         disc: s.disc,
         downrangeM: s.measurement.downrangeM,
         crossRangeM: s.measurement.crossRangeM,
@@ -122,7 +147,6 @@ export function SessionScreen(props: {
       });
       setThrows((t) => [...t, row]);
       dispatch({ type: 'confirm' });
-      props.onThrowType(s.throwType);
     } catch (e) {
       fail('save the throw', e);
     } finally {
@@ -232,13 +256,39 @@ export function SessionScreen(props: {
               : `GPS has drifted ${formatDistance(driftM, unit)} since the tee was set. Measurements are still good.`}
           </Banner>
         )}
-        <Text style={styles.instruction}>Throw, walk to your disc, then tap Mark Disc.</Text>
-        {kept.length > 0 && stats.all.downrange && (
-          <Text style={styles.body}>
-            {kept.length} throw{kept.length === 1 ? '' : 's'} · best {formatDistance(stats.all.downrange.max, unit)} ·
-            average {formatDistance(stats.all.downrange.mean, unit)}
+        <Text style={[styles.instruction, { marginVertical: 12 }]}>Throw, walk to your disc, then tap Mark Disc.</Text>
+        {kept.length > 0 && stats.downrange && (
+          <Text style={[styles.body, { marginBottom: 8 }]}>
+            {kept.length} throw{kept.length === 1 ? '' : 's'} · best {formatDistance(stats.downrange.max, unit)} ·
+            average {formatDistance(stats.downrange.mean, unit)}
           </Text>
         )}
+        <ThrowPlot
+          unit={unit}
+          current={kept.map(
+            (t): PlotThrow => ({
+              key: `c${t.id}`,
+              downrangeM: t.downrangeM,
+              crossRangeM: t.crossRangeM,
+              label: plotLabel(`Throw ${t.seq}`, t.downrangeM, t.crossRangeM, unit),
+            }),
+          )}
+          past={past.map(
+            (t): PlotThrow => ({
+              key: `p${t.id}`,
+              downrangeM: t.downrangeM,
+              crossRangeM: t.crossRangeM,
+              label: plotLabel(
+                `${new Date(t.time).toLocaleDateString()} ${t.discName}`,
+                t.downrangeM,
+                t.crossRangeM,
+                unit,
+              ),
+            }),
+          )}
+        />
+        <Text style={[styles.muted, { marginTop: 4, marginBottom: 6 }]}>Earlier throws on the plot</Text>
+        <Choice options={OVERLAYS} value={props.overlay} onChange={props.onOverlayChange} />
         {[...throws].reverse().map((t) => (
           <Pressable key={t.id} onLongPress={() => toggleDeleted(t)} delayLongPress={400}>
             <View
@@ -254,10 +304,7 @@ export function SessionScreen(props: {
               <Text style={[styles.body, { width: 40 }]}>{t.seq}</Text>
               <Text style={[styles.body, { fontWeight: '700', width: 90 }]}>{formatDistance(t.downrangeM, unit)}</Text>
               <Text style={[styles.body, { flex: 1 }]}>{formatCrossRange(t.crossRangeM, unit)}</Text>
-              <Text style={styles.muted}>
-                {t.throwType === 'backhand' ? 'BH' : 'FH'}
-                {t.lowQuality ? ' ⚠' : ''}
-              </Text>
+              <Text style={[styles.muted, { width: 24 }]}>{t.lowQuality ? '⚠' : ''}</Text>
             </View>
           </Pressable>
         ))}
@@ -279,7 +326,7 @@ export function SessionScreen(props: {
       </>
     );
   } else {
-    // Review (DGT-THR-001, -002, -007, -008, -009; layout in requirements Section 4.3.1).
+    // Review (DGT-THR-001, -002, -007, -008; layout in requirements Section 4.3.1).
     const warned = s.quality !== 'steady';
     body = (
       <View style={{ alignItems: 'center' }}>
@@ -296,13 +343,6 @@ export function SessionScreen(props: {
             <Banner tone="warn">{qualityText(s.quality, s.disc.spreadM, unit)} Re-measure if unsure.</Banner>
           </View>
         )}
-        <View style={{ alignSelf: 'stretch', marginTop: 24 }}>
-          <Choice
-            options={THROW_TYPES}
-            value={s.throwType}
-            onChange={(t) => dispatch({ type: 'set-throw-type', throwType: t })}
-          />
-        </View>
       </View>
     );
     primary = (
@@ -331,7 +371,7 @@ export function SessionScreen(props: {
   }
 
   return (
-    <View style={[styles.screen, { paddingBottom: 16 }]}>
+    <View style={[styles.screen, edges]}>
       <GpsBar fix={gps.fix} now={now} unit={unit} permission={gps.permission} />
       <Text style={[styles.h1, { fontSize: 22 }]}>
         {disc.name}

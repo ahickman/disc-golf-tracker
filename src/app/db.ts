@@ -2,17 +2,14 @@
 
 import * as SQLite from 'expo-sqlite';
 
-import type { Mark, ThrowType } from '../core/types.ts';
+import type { Mark } from '../core/types.ts';
 import type { DistanceUnit } from '../core/units.ts';
 
 export type Db = SQLite.SQLiteDatabase;
 
-export type DiscType = 'distance' | 'fairway' | 'midrange' | 'putter';
-
 export interface DiscRow {
   id: number;
   name: string;
-  type: DiscType;
 }
 
 export interface ThrowRow {
@@ -20,7 +17,6 @@ export interface ThrowRow {
   sessionId: number;
   seq: number;
   time: number;
-  throwType: ThrowType;
   disc: Mark;
   downrangeM: number;
   crossRangeM: number;
@@ -38,22 +34,23 @@ export interface SessionRow {
   aim: Mark;
 }
 
-const SCHEMA_VERSION = 1;
+// Version 2 dropped the disc type and throw type columns (the developer has no use for them, 2026-10-30).
+const SCHEMA_VERSION = 2;
 
 export async function openDb(): Promise<Db> {
   const db = await SQLite.openDatabaseAsync('disc-golf-tracker.db');
   await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
   const row = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
-  if ((row?.user_version ?? 0) < SCHEMA_VERSION) {
+  const version = row?.user_version ?? 0;
+  if (version === 0) {
     await db.execAsync(`
-      CREATE TABLE IF NOT EXISTS discs (
+      CREATE TABLE discs (
         id INTEGER PRIMARY KEY,
         name TEXT NOT NULL,
-        type TEXT NOT NULL,
         retired INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER NOT NULL
       );
-      CREATE TABLE IF NOT EXISTS sessions (
+      CREATE TABLE sessions (
         id INTEGER PRIMARY KEY,
         disc_id INTEGER NOT NULL REFERENCES discs(id),
         started_at INTEGER NOT NULL,
@@ -62,12 +59,11 @@ export async function openDb(): Promise<Db> {
         aim TEXT NOT NULL,
         note TEXT
       );
-      CREATE TABLE IF NOT EXISTS throws (
+      CREATE TABLE throws (
         id INTEGER PRIMARY KEY,
         session_id INTEGER NOT NULL REFERENCES sessions(id),
         seq INTEGER NOT NULL,
         time INTEGER NOT NULL,
-        throw_type TEXT NOT NULL,
         disc_mark TEXT NOT NULL,
         downrange_m REAL NOT NULL,
         crossrange_m REAL NOT NULL,
@@ -76,8 +72,15 @@ export async function openDb(): Promise<Db> {
         deleted INTEGER NOT NULL DEFAULT 0,
         note TEXT
       );
-      CREATE INDEX IF NOT EXISTS throws_by_session ON throws(session_id, seq);
-      CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+      CREATE INDEX throws_by_session ON throws(session_id, seq);
+      CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+      PRAGMA user_version = ${SCHEMA_VERSION};
+    `);
+  } else if (version === 1) {
+    await db.execAsync(`
+      ALTER TABLE discs DROP COLUMN type;
+      ALTER TABLE throws DROP COLUMN throw_type;
+      DELETE FROM settings WHERE key = 'lastThrowType';
       PRAGMA user_version = ${SCHEMA_VERSION};
     `);
   }
@@ -86,10 +89,13 @@ export async function openDb(): Promise<Db> {
 
 // --- settings
 
+/** Which earlier throws the plot overlays (DGT-PLT-003). */
+export type Overlay = 'off' | 'disc' | 'all';
+
 export interface Settings {
   unit: DistanceUnit;
-  lastThrowType: ThrowType;
   lastDiscId: number | null;
+  overlay: Overlay;
 }
 
 export async function loadSettings(db: Db): Promise<Settings> {
@@ -98,8 +104,8 @@ export async function loadSettings(db: Db): Promise<Settings> {
   const lastDisc = Number(m.get('lastDiscId'));
   return {
     unit: m.get('unit') === 'ft' ? 'ft' : 'm',
-    lastThrowType: m.get('lastThrowType') === 'forehand' ? 'forehand' : 'backhand',
     lastDiscId: Number.isInteger(lastDisc) && lastDisc > 0 ? lastDisc : null,
+    overlay: m.get('overlay') === 'disc' || m.get('overlay') === 'all' ? (m.get('overlay') as Overlay) : 'off',
   };
 }
 
@@ -109,45 +115,29 @@ export async function saveSetting(db: Db, key: keyof Settings, value: string): P
 
 // --- discs
 
-interface DiscDbRow {
-  id: number;
-  name: string;
-  type: string;
-}
-
-function toDisc(r: DiscDbRow): DiscRow {
-  const type = (['distance', 'fairway', 'midrange', 'putter'] as const).find((t) => t === r.type) ?? 'fairway';
-  return { id: r.id, name: r.name, type };
-}
-
-/** The disc with this name (ignoring case and surrounding spaces), created or updated to the given type. */
-export async function saveDisc(db: Db, name: string, type: DiscType): Promise<DiscRow> {
+/** The disc with this name (ignoring case and surrounding spaces), created if new. */
+export async function saveDisc(db: Db, name: string): Promise<DiscRow> {
   const clean = name.trim();
-  const existing = await db.getFirstAsync<DiscDbRow>(
-    'SELECT id, name, type FROM discs WHERE lower(name) = lower(?) AND retired = 0',
+  const existing = await db.getFirstAsync<DiscRow>(
+    'SELECT id, name FROM discs WHERE lower(name) = lower(?) AND retired = 0',
     clean,
   );
-  if (existing) {
-    if (existing.type !== type) await db.runAsync('UPDATE discs SET type = ? WHERE id = ?', type, existing.id);
-    return { id: existing.id, name: existing.name, type };
-  }
-  const r = await db.runAsync('INSERT INTO discs (name, type, created_at) VALUES (?, ?, ?)', clean, type, Date.now());
-  return { id: r.lastInsertRowId, name: clean, type };
+  if (existing) return existing;
+  const r = await db.runAsync('INSERT INTO discs (name, created_at) VALUES (?, ?)', clean, Date.now());
+  return { id: r.lastInsertRowId, name: clean };
 }
 
 /** Discs, most recently used first. */
 export async function recentDiscs(db: Db, limit = 6): Promise<DiscRow[]> {
-  const rows = await db.getAllAsync<DiscDbRow>(
-    `SELECT d.id, d.name, d.type FROM discs d LEFT JOIN sessions s ON s.disc_id = d.id
+  return db.getAllAsync<DiscRow>(
+    `SELECT d.id, d.name FROM discs d LEFT JOIN sessions s ON s.disc_id = d.id
      WHERE d.retired = 0 GROUP BY d.id ORDER BY max(coalesce(s.started_at, d.created_at)) DESC LIMIT ?`,
     limit,
   );
-  return rows.map(toDisc);
 }
 
 export async function getDisc(db: Db, id: number): Promise<DiscRow | null> {
-  const r = await db.getFirstAsync<DiscDbRow>('SELECT id, name, type FROM discs WHERE id = ?', id);
-  return r ? toDisc(r) : null;
+  return db.getFirstAsync<DiscRow>('SELECT id, name FROM discs WHERE id = ?', id);
 }
 
 // --- sessions
@@ -210,7 +200,6 @@ interface ThrowDbRow {
   session_id: number;
   seq: number;
   time: number;
-  throw_type: string;
   disc_mark: string;
   downrange_m: number;
   crossrange_m: number;
@@ -225,7 +214,6 @@ function toThrow(r: ThrowDbRow): ThrowRow {
     sessionId: r.session_id,
     seq: r.seq,
     time: r.time,
-    throwType: r.throw_type === 'forehand' ? 'forehand' : 'backhand',
     disc: JSON.parse(r.disc_mark) as Mark,
     downrangeM: r.downrange_m,
     crossRangeM: r.crossrange_m,
@@ -244,12 +232,11 @@ export async function addThrow(db: Db, t: NewThrow): Promise<ThrowRow> {
   );
   const seq = (last?.seq ?? 0) + 1;
   const r = await db.runAsync(
-    `INSERT INTO throws (session_id, seq, time, throw_type, disc_mark, downrange_m, crossrange_m, total_m, low_quality)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO throws (session_id, seq, time, disc_mark, downrange_m, crossrange_m, total_m, low_quality)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     t.sessionId,
     seq,
     t.time,
-    t.throwType,
     JSON.stringify(t.disc),
     t.downrangeM,
     t.crossRangeM,
@@ -266,4 +253,44 @@ export async function setThrowDeleted(db: Db, throwId: number, deleted: boolean)
 export async function sessionThrows(db: Db, sessionId: number): Promise<ThrowRow[]> {
   const rows = await db.getAllAsync<ThrowDbRow>('SELECT * FROM throws WHERE session_id = ? ORDER BY seq', sessionId);
   return rows.map(toThrow);
+}
+
+export interface PastThrow {
+  id: number;
+  time: number;
+  discName: string;
+  downrangeM: number;
+  crossRangeM: number;
+}
+
+/** Throws from other sessions for the plot overlay (DGT-PLT-003), newest first, optionally for one disc only. */
+export async function pastThrows(
+  db: Db,
+  excludeSessionId: number | null,
+  discId: number | null,
+  limit = 1000,
+): Promise<PastThrow[]> {
+  const rows = await db.getAllAsync<{
+    id: number;
+    time: number;
+    disc_name: string;
+    downrange_m: number;
+    crossrange_m: number;
+  }>(
+    `SELECT t.id, t.time, d.name AS disc_name, t.downrange_m, t.crossrange_m
+     FROM throws t JOIN sessions s ON s.id = t.session_id JOIN discs d ON d.id = s.disc_id
+     WHERE t.deleted = 0 AND s.id != ? AND (? IS NULL OR s.disc_id = ?)
+     ORDER BY t.time DESC LIMIT ?`,
+    excludeSessionId ?? -1,
+    discId,
+    discId,
+    limit,
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    time: r.time,
+    discName: r.disc_name,
+    downrangeM: r.downrange_m,
+    crossRangeM: r.crossrange_m,
+  }));
 }

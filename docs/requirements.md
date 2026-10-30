@@ -1,7 +1,7 @@
 # Disc Golf Throw Tracker — Concept of Operations and Requirements
 
-> **Status:** draft 6, 2026-10-30. Collected from the developer's description of the app; updated with the developer's
-> answers (Section 9). Milestone 1 (measurement core) done; milestone 2 (field prototype) built, awaiting field testing.
+> **Status:** draft 7, 2026-10-30. Collected from the developer's description of the app; updated with the developer's
+> answers and field feedback (Section 9). Milestones 1-2 done; milestone 3 (plot) built, awaiting field testing.
 > Open questions are listed in Section 9; values marked *(default)* are proposals the developer can change.
 
 ## 1. Purpose and scope
@@ -49,7 +49,7 @@ flowchart TD
    accurate direction (Section 6).
 4. **Throw and mark.** The player walks back to the tee and throws. At the disc they press **Mark Disc**. The app
    records the disc position and shows the downrange distance in large type, with the cross range and GPS quality
-   beneath it, and a backhand / forehand selector that starts on whatever the previous throw used (Section 4.3.1).
+   beneath it (Section 4.3.1).
 5. **Confirm.** If the numbers look right the player taps **Confirm**, directly below the distance, and the throw
    is logged with a timestamp. They can instead re-measure or discard it.
 6. **Repeat** steps 4–5 for as many throws as they like. The plot of the tee, the centre line, and this
@@ -106,14 +106,14 @@ The field may have no mobile data signal.
 | --- | --- | --- |
 | DGT-THR-001 | After Mark Disc the app shall show downrange, cross range (with an L/R indication), total distance, and the GPS quality of the disc mark, before the throw is logged, laid out as in Section 4.3.1. | T |
 | DGT-THR-002 | The player shall be able to **Confirm** (log the throw), **Re-measure** (take a new disc mark), or **Discard** the measurement. | T |
-| DGT-THR-003 | A confirmed throw shall store its timestamp, its disc mark, the computed downrange, cross range, and total distance, its throw type (DGT-THR-009), a sequence number within the session, and a flag if any of its marks was taken with a GPS warning active. | T |
+| DGT-THR-003 | A confirmed throw shall store its timestamp, its disc mark, the computed downrange, cross range, and total distance, a sequence number within the session, and a flag if any of its marks was taken with a GPS warning active. | T |
 | DGT-THR-004 | The player shall be able to delete or annotate a logged throw after the fact (e.g. "rolled", "hit tree"). Deleted throws are excluded from statistics. | T |
 | DGT-THR-005 | Downrange and cross range shall be computed in a local flat (east-north) plane centred on the tee, using a WGS-84 local tangent-plane or equirectangular projection. Over the distances involved (< 1 km) the projection error shall be below 0.1 ft. | T |
 | DGT-THR-006 | The app shall reject Set Line if the aim point is closer than 30 ft to the tee, and shall warn (but allow) if the baseline is under 150 ft *(default)* because the line's direction will be imprecise (Section 6). | T |
 | DGT-THR-007 | On the review screen the downrange distance shall be the dominant element: the largest text on the screen *(at least 25% of screen height)*, with its unit. Cross range, total distance, and GPS quality shall appear smaller beneath it. | D |
 | DGT-THR-008 | The **Confirm** button shall sit directly below the distance, be the largest button on the review screen, and confirm with a single tap. Re-measure and Discard shall be smaller and placed away from Confirm, so they are not hit by accident. | D |
-| DGT-THR-009 | Every throw shall be tagged **backhand** or **forehand**. The review screen shall show a two-way selector between the distance and Confirm. It shall start on the previous throw's type (the first throw of a session starts on the previous session's last type, or backhand), so a run of same-type throws needs no extra taps. | T |
-| DGT-THR-010 | The player shall be able to change a logged throw's type afterwards. | T |
+| DGT-THR-009 | ~~Backhand / forehand tag on every throw.~~ *Removed 2026-10-30: the developer has no use for it.* | — |
+| DGT-THR-010 | ~~Changing a logged throw's type.~~ *Removed 2026-10-30: the developer has no use for it.* | — |
 
 #### 4.3.1 Review screen layout
 
@@ -125,8 +125,6 @@ The field may have no mobile data signal.
 │          downrange           │
 │                              │
 │   4 m right · total 87 m     │
-│                              │
-│  [■ Backhand ][  Forehand ]  │  ← starts on the last throw's type
 │                              │
 │  ┌────────────────────────┐  │
 │  │        CONFIRM         │  │  ← one tap logs the throw
@@ -154,9 +152,9 @@ Confirm reads "Confirm anyway".
 
 | ID | Requirement | Ver. |
 | --- | --- | --- |
-| DGT-DSC-001 | The app shall keep a list of the player's discs. Each disc has a name (e.g. "Leopard DX"), a type (distance driver, fairway driver, midrange, putter), and optionally manufacturer, plastic, weight, colour, and flight numbers (speed / glide / turn / fade, e.g. 6 / 5 / −2 / 1). | T |
+| DGT-DSC-001 | The app shall keep a list of the player's discs. Each disc has a name (e.g. "Leopard DX") and optionally manufacturer, plastic, weight, colour, and flight numbers (speed / glide / turn / fade, e.g. 6 / 5 / −2 / 1). | T |
 | DGT-DSC-002 | The player shall be able to add, edit, and retire discs. Retired discs stay attached to past sessions. | T |
-| DGT-DSC-003 | Each session shall be tagged with exactly one disc. Statistics and plots shall be filterable by disc and by disc type. | T |
+| DGT-DSC-003 | Each session shall be tagged with exactly one disc. Statistics and plots shall be filterable by disc. (A disc *type* was dropped 2026-10-30: no use to the developer.) | T |
 
 ### 4.6 Units and display
 
@@ -172,11 +170,11 @@ Confirm reads "Confirm anyway".
 | --- | --- | --- |
 | DGT-PLT-001 | The app shall show a plot (the *plain plot*: simple shapes on a plain background) in throw coordinates: tee at the bottom centre, centre line pointing straight up, cross range horizontal (right = right of line), with distance grid lines *(default every 50 ft / 10 m)*. | D |
 | DGT-PLT-002 | The plot shall show the current session's throws as dots, and shall be visible on the main session screen or reachable from it in one tap after each confirmed throw. | D |
-| DGT-PLT-003 | The player shall be able to overlay throws from previous sessions, drawn in a different, less prominent colour. The overlay shall be filterable (same disc / same disc type / all, and by date range). | D |
+| DGT-PLT-003 | The player shall be able to overlay throws from previous sessions, drawn in a different, less prominent colour. The overlay shall be selectable: off / same disc / all *(built)*, and later by date range. | D |
 | DGT-PLT-004 | Because every session has its own tee and line, previous sessions shall be overlaid in their own throw coordinates (downrange, cross range), not by map position. This makes throws from different days and fields directly comparable. | T |
-| DGT-PLT-005 | Tapping a dot shall show that throw's details (distances, throw type, time, session, disc, note). | D |
-| DGT-PLT-007 | Backhand and forehand throws shall use different marker shapes *(proposed: circle and triangle)*, so colour stays free for current vs previous sessions. The plot shall be filterable by throw type. | D |
-| DGT-PLT-006 | The plot shall auto-scale to fit the shown throws and support pinch zoom. | D |
+| DGT-PLT-005 | Tapping a dot shall show that throw's details (distances, time, session, disc, note). | D |
+| DGT-PLT-007 | ~~Different markers for backhand and forehand.~~ *Removed 2026-10-30: the developer has no use for it.* | — |
+| DGT-PLT-006 | The plot shall auto-scale to fit the shown throws, at the same scale both ways, and support pinch zoom *(pinch zoom not built yet)*. | D |
 
 ### 4.8 Satellite map (version 2)
 
@@ -199,9 +197,9 @@ Confirm reads "Confirm anyway".
 
 | ID | Requirement | Ver. |
 | --- | --- | --- |
-| DGT-RPT-001 | The session report shall list every throw (sequence, time, throw type, downrange, cross range, total distance, flags, note) and the session's plot. | T |
-| DGT-RPT-002 | The session report shall give, over confirmed throws: count; downrange max, mean, median, and standard deviation; cross range mean (left/right bias), standard deviation, and mean absolute value; and the percentage of throws within a configurable corridor of the line *(default ±20 ft)*. These shall be given for all throws and separately for backhand and forehand. | T |
-| DGT-RPT-003 | A progress view shall chart session statistics over time (e.g. mean and max downrange, cross-range spread) for a chosen disc or disc type, and for backhand, forehand, or both. | D |
+| DGT-RPT-001 | The session report shall list every throw (sequence, time, downrange, cross range, total distance, flags, note) and the session's plot. | T |
+| DGT-RPT-002 | The session report shall give, over confirmed throws: count; downrange max, mean, median, and standard deviation; cross range mean (left/right bias), standard deviation, and mean absolute value; and the percentage of throws within a configurable corridor of the line *(default ±20 ft)*. | T |
+| DGT-RPT-003 | A progress view shall chart session statistics over time (e.g. mean and max downrange, cross-range spread) for a chosen disc. | D |
 | DGT-RPT-004 | The app shall export a session, or all data, as CSV (one row per throw) and as JSON (full data including raw marks), through the phone's share sheet. | T |
 | DGT-RPT-005 | The app shall import a JSON export, so data survives a phone change or reinstall. | T |
 
@@ -210,7 +208,7 @@ Confirm reads "Confirm anyway".
 | ID | Requirement | Ver. |
 | --- | --- | --- |
 | DGT-NFR-001 | **Offline.** All functions shall work with no network connection. (From version 2, satellite imagery is the exception; it falls back to the plain plot, DGT-MAP-004.) | D |
-| DGT-NFR-002 | **Minimal UI.** The session screen shall show one primary action at a time (the next step in the workflow), with buttons large enough to hit with a thumb while walking. | I |
+| DGT-NFR-002 | **Minimal UI.** The session screen shall show one primary action at a time (the next step in the workflow), with buttons large enough to hit with a thumb while walking. Nothing tappable shall sit under Android's status bar or navigation buttons (the app is drawn edge to edge). | I |
 | DGT-NFR-003 | **Sunlight.** The session screen shall be readable in direct sun: high contrast, large type for the key numbers. A dark theme is optional. | D |
 | DGT-NFR-004 | **Screen awake.** The screen shall stay on while a session is active *(default on, configurable)*. | D |
 | DGT-NFR-005 | **Battery.** High-accuracy location shall run only while the app is open in the foreground (it also runs on the start screen, so GPS has settled before Set Tee); the app shall not track location in the background. | I |
@@ -304,10 +302,10 @@ both also need an account and key.
 ## 8. Data model (sketch)
 
 ```text
-Disc     { id, name, type, manufacturer?, plastic?, weight_g?, colour?, speed?, glide?, turn?, fade?, retired }
+Disc     { id, name, manufacturer?, plastic?, weight_g?, colour?, speed?, glide?, turn?, fade?, retired }
 Mark     { lat, lon, accuracy_m, spread_m, fix_count, time, altitude_m? }   // spread_m: the mark's jitter
 Session  { id, disc_id, started_at, ended_at?, tee: Mark, aim: Mark, note? }
-Throw    { id, session_id, seq, time, throw_type: backhand|forehand, disc: Mark,
+Throw    { id, session_id, seq, time, disc: Mark,
            downrange_m, crossrange_m, total_m, low_quality: bool, deleted: bool, note? }
 Settings { units: ft|m, gps_warn_threshold_m, settle_seconds, keep_awake, corridor_m, short_baseline_m,
            plot_default: map|plain, map_timeout_s }   // plot_default and map_timeout_s from version 2
@@ -324,7 +322,8 @@ Computed distances are stored for convenience but can always be recomputed from 
 - **Metric resolution:** nearest metre (DGT-UNI-003).
 - **Setting the line:** a single tap of Set Line at the aim point, with no confirmation step (DGT-POS-001).
 - **Review screen:** downrange in large type with Confirm directly below it (DGT-THR-007, DGT-THR-008, Section 4.3.1).
-- **Throw type:** every throw is tagged backhand or forehand (DGT-THR-009, DGT-THR-010); statistics split by it.
+- **No throw type or disc type** (field feedback): backhand/forehand and distance/fairway/mid/putter were dropped;
+  neither adds value for the developer (DGT-THR-009, -010, DGT-PLT-007 removed; DGT-DSC-001, -003 changed).
 - **Cross-range sign:** right of the line, looking downfield from the tee, is positive (Section 3).
 - **No saved tees:** every session sets its own tee and line; fields are not remembered (Section 1).
 - **Satellite map in version 2,** falling back to the plain plot when there is no connection (Section 4.8).
@@ -343,7 +342,8 @@ No questions are open.
 2. **Field prototype.** One screen: Set Tee, Set Line, Mark Disc, Confirm, with the GPS indicator and warnings,
    saving to SQLite. Take it to a field and check against a tape measure or known distances. *Built 2026-10-30:
    also includes the disc and unit choice, resume, the tee check, throw deletion, and a basic session report.*
-3. **Plot and session report,** including the backhand / forehand split.
+3. **Plot and session report.** *Built 2026-10-30: plot on the throwing screen and in the report, earlier throws
+   overlaid (off / this disc / all), tap a dot for details. Not yet: pinch zoom, date filter.*
 4. **Discs, history, and the previous-sessions overlay.**
 5. **Progress view, export and import, settings polish.**
 

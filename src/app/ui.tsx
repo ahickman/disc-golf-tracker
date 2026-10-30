@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { gpsStatus } from '../core/gps.ts';
 import type { Fix } from '../core/types.ts';
@@ -20,6 +21,15 @@ export const colours = {
   warn: '#a35f00',
   bad: '#c0161d',
 };
+
+/**
+ * Padding that keeps a screen clear of Android's status bar and navigation buttons: the app is drawn edge to edge,
+ * under both.
+ */
+export function useEdgePadding(): { paddingTop: number; paddingBottom: number } {
+  const insets = useSafeAreaInsets();
+  return { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 16 };
+}
 
 export function BigButton(props: { label: string; onPress: () => void; disabled?: boolean; colour?: string }) {
   const { label, onPress, disabled = false, colour = colours.primary } = props;
@@ -131,7 +141,7 @@ export function MarkingOverlay(props: { marking: MarkInProgress; settleMs: numbe
 }
 
 export const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colours.background, paddingHorizontal: 16, paddingTop: 48, paddingBottom: 24 },
+  screen: { flex: 1, backgroundColor: colours.background, paddingHorizontal: 16 },
   h1: { fontSize: 28, fontWeight: '800', color: colours.text },
   h2: { fontSize: 20, fontWeight: '700', color: colours.text, marginTop: 20, marginBottom: 8 },
   body: { fontSize: 18, color: colours.text },
